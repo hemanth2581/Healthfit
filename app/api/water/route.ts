@@ -1,74 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
-import { isValidUUID } from '@/lib/anonymousUser';
-import { waterLogSchema } from '@/lib/validation';
-
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
-
-  if (!userId || !isValidUUID(userId)) {
-    return NextResponse.json({ error: 'Valid userId required' }, { status: 400 });
-  }
-
-  const supabase = getServerSupabase();
-  if (!supabase) {
-    return NextResponse.json({ logs: [] }, { status: 200 });
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('water_logs')
-      .select('*')
-      .eq('anonymous_user_id', userId)
-      .order('logged_at', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ logs: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}
+import { isValidUUID } from '@/lib/storage/anonymousUser';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { anonymous_user_id, amount_ml } = body;
+    const { userId, user_id, anonymous_user_id, amount_ml, date } = body;
+    const targetUserId = userId || user_id || anonymous_user_id;
 
-    if (!anonymous_user_id || !isValidUUID(anonymous_user_id)) {
-      return NextResponse.json({ error: 'Valid anonymous_user_id required' }, { status: 400 });
+    if (!targetUserId || !isValidUUID(targetUserId)) {
+      return NextResponse.json({ error: 'Valid user ID is required' }, { status: 400 });
     }
 
-    const validated = waterLogSchema.safeParse({ amount_ml: Number(amount_ml) });
-    if (!validated.success) {
-      return NextResponse.json({ error: 'Validation failed', details: validated.error.format() }, { status: 422 });
-    }
-
+    const taskDate = date || new Date().toISOString().split('T')[0];
     const supabase = getServerSupabase();
-    if (!supabase) {
-      return NextResponse.json({ success: true, message: 'Saved locally' }, { status: 200 });
+
+    if (supabase) {
+      const { data: existing } = await supabase
+        .from('daily_progress')
+        .select('*')
+        .eq('user_id', targetUserId)
+        .eq('progress_date', taskDate)
+        .maybeSingle();
+
+      const newWater = ((existing as any)?.water_intake || 0) + (amount_ml || 250);
+
+      await supabase
+        .from('daily_progress')
+        .update({
+          water_intake: newWater,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('user_id', targetUserId)
+        .eq('progress_date', taskDate);
+
+      return NextResponse.json({ success: true, water_intake: newWater });
     }
 
-    const { data, error } = await (supabase
-      .from('water_logs') as any)
-      .insert({
-        anonymous_user_id,
-        amount_ml: validated.data.amount_ml,
-        logged_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, log: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error logging water' }, { status: 500 });
+    return NextResponse.json({ success: true, message: 'Updated locally' });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error updating water';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -88,9 +88,9 @@ healthfit/
 │   ├── layout.tsx                # App shell, Navbar, Footer, MobileNav
 │   └── globals.css               # Design tokens, themes & safe area styles
 ├── components/
-│   ├── layout/                   # Navbar, Footer, MobileNav, DisclaimerBanner
+│   ├── layout/                   # Navbar, Footer, MobileNav, Sidebar
 │   ├── onboarding/               # Step1Body, Step2Lifestyle, Step3Goal, Step4Diet
-│   ├── dashboard/                # MacroOverviewCards, HealthMetricSummary, TodayMealList, DailyChecklist
+│   ├── dashboard/                # MacroOverviewCards, TodayMealList, DailyChecklist
 │   ├── weekly/                   # WeeklyPlanView
 │   ├── progress/                 # ProgressAnalyticsView
 │   ├── hydration/                # HydrationScheduleView
@@ -106,17 +106,22 @@ healthfit/
 │   ├── supabase/
 │   │   ├── client.ts             # Browser Supabase client (anon key only)
 │   │   └── server.ts             # Server-side Supabase client
-│   ├── anonymousUser.ts          # UUID generation & cookie/storage persistence
-│   ├── validation.ts             # Zod schemas for Onboarding & Logging
-│   ├── localStore.ts             # Client persistence & offline synchronization
-│   └── utils.ts                  # Class merge & formatting utilities
+│   ├── storage/
+│   │   ├── anonymousUser.ts      # UUID generation & cookie/storage persistence
+│   │   └── localStore.ts         # Client persistence & offline synchronization
+│   ├── validation/
+│   │   └── schemas.ts            # Zod schemas for Onboarding & Logging
+│   └── utils/                    # Formatting, helper, and date utilities
 ├── supabase/
 │   └── migrations/
 │       ├── 001_initial_schema.sql
 │       └── 002_anonymous_users.sql# 8 PostgreSQL tables, RLS policies, indexes
-└── __tests__/
-    ├── calculations.test.ts      # Automated unit tests for Scenarios 1-3
-    └── dietGenerator.test.ts     # Automated unit tests for Scenarios 4-6
+└── tests/
+    ├── ai/aiChat.test.ts
+    ├── nutrition/calculations.test.ts
+    ├── nutrition/dietGenerator.test.ts
+    ├── nutrition/fitnessGenerator.test.ts
+    └── progress/progress.test.ts
 ```
 
 ---

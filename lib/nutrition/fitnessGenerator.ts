@@ -1,10 +1,65 @@
-import { ActivityLevel, Goal, WorkoutPreference } from '@/types/health';
+import { ActivityLevel } from '@/types/health';
 import { DailyWorkout } from '@/types/nutrition';
 
+export interface PhaseWorkout {
+  title: string;
+  focus: string;
+  level: string;
+  estimatedMinutes: number;
+  warmup: { name: string; duration: string }[];
+  main: { name: string; sets: number; reps?: string; duration?: string; restSeconds?: number }[];
+  cooldown: { name: string; duration: string }[];
+}
+
+export function generateDailyWorkout(
+  _goal: string = 'fat_loss',
+  activityLevel: string = 'moderately_active',
+  dayIndex: number = 0
+): PhaseWorkout {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const dayName = days[dayIndex % 7] || 'Monday';
+
+  const mappedActivity =
+    activityLevel === 'sedentary' || activityLevel === 'lightly_active'
+      ? 'sedentary'
+      : activityLevel === 'very_active' || activityLevel === 'extremely_active'
+      ? 'very_active'
+      : 'moderately_active';
+
+  const weekly = generateWeeklyWorkouts(mappedActivity as ActivityLevel);
+  const raw = weekly[dayName] || weekly['Monday'];
+
+  const warmup = [
+    { name: 'Arm Circles & Shoulder Rotations', duration: '2 mins' },
+    { name: 'Leg Swings & Cat-Cow Mobility', duration: '3 mins' },
+  ];
+
+  const main = raw.exercises.map((ex) => ({
+    name: ex.name,
+    sets: ex.sets || 3,
+    reps: ex.reps || '10-12 reps',
+    duration: ex.duration,
+    restSeconds: ex.restSeconds || 60,
+  }));
+
+  const cooldown = [
+    { name: 'Hamstring & Glute Static Stretch', duration: '2 mins' },
+    { name: 'Chest Opening & Diaphragmatic Breathing', duration: '3 mins' },
+  ];
+
+  return {
+    title: raw.title,
+    focus: raw.focus,
+    level: raw.level,
+    estimatedMinutes: raw.durationMinutes || 35,
+    warmup,
+    main,
+    cooldown,
+  };
+}
+
 export function generateWeeklyWorkouts(
-  activityLevel: ActivityLevel,
-  goal: Goal,
-  workoutPreference: WorkoutPreference = 'mixed'
+  activityLevel: ActivityLevel
 ): Record<string, DailyWorkout> {
   const level: DailyWorkout['level'] =
     activityLevel === 'sedentary' || activityLevel === 'lightly_active'
@@ -13,7 +68,6 @@ export function generateWeeklyWorkouts(
       ? 'Intermediate'
       : 'Advanced';
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const routines: Record<string, DailyWorkout> = {};
 
   if (level === 'Beginner') {

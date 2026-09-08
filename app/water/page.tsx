@@ -1,101 +1,72 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Droplets, Sparkles, ArrowRight } from 'lucide-react';
-import { UserProfile, HealthCalculations } from '@/types/health';
-import { DailyProgress } from '@/types/progress';
-import { localStore } from '@/lib/localStore';
-import { getClientUserId } from '@/lib/anonymousUser';
+import React from 'react';
 import { HydrationScheduleView } from '@/components/hydration/HydrationScheduleView';
+import { useProfile, useTodayProgress } from '@/lib/hooks';
+import { localStore } from '@/lib/storage/localStore';
+import Link from 'next/link';
+import { Droplets, ArrowRight } from 'lucide-react';
+import { getTodayDateString } from '@/lib/utils/dates';
 
 export default function WaterPage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [metrics, setMetrics] = useState<HealthCalculations | null>(null);
-  const [progress, setProgress] = useState<DailyProgress | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const profile = useProfile();
+  const todayProgress = useTodayProgress();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = () => {
-    setIsLoading(true);
-    const storedProfile = localStore.getProfile();
-    const storedMetrics = localStore.getMetrics();
-    const userId = getClientUserId();
-
-    if (storedProfile && storedMetrics) {
-      setProfile(storedProfile);
-      setMetrics(storedMetrics);
-      const todayProgress = localStore.getTodayProgress(userId, storedMetrics.waterTarget);
-      setProgress(todayProgress);
-    }
-    setIsLoading(false);
-  };
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-slate-50/50 py-16 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full p-8 bg-white border border-slate-200 rounded-3xl text-center space-y-4 shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center mx-auto">
+            <Droplets className="w-7 h-7" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Set Up Your Profile</h2>
+          <p className="text-sm text-slate-500">
+            Please complete your onboarding profile to calculate your exact daily water requirement and schedule.
+          </p>
+          <Link
+            href="/onboarding"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition-all"
+          >
+            <span>Start Onboarding</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const handleAddWater = (amountMl: number) => {
-    if (!progress || !metrics) return;
-    const userId = getClientUserId();
-    const updated = {
-      ...progress,
-      water_completed_ml: (progress.water_completed_ml || 0) + amountMl,
-    };
-    setProgress(updated);
-    localStore.saveTodayProgress(updated);
-
+    const uId = profile.user_id || profile.anonymous_user_id || 'user';
     localStore.addWaterLog({
-      anonymous_user_id: userId,
+      user_id: uId,
       amount_ml: amountMl,
       logged_at: new Date().toISOString(),
     });
 
-    fetch('/api/progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated),
-    }).catch((e) => console.warn('Water sync note:', e));
+    const prog = localStore.getTodayProgress(uId);
+    prog.water_completed_ml = (prog.water_completed_ml || 0) + amountMl;
+    localStore.saveTodayProgress(prog);
   };
 
-  if (isLoading) {
-    return (
-      <div className="py-20 text-center space-y-4">
-        <div className="w-12 h-12 rounded-full border-4 border-sky-500/20 border-t-sky-400 animate-spin mx-auto" />
-        <p className="text-sm text-slate-400">Loading hydration station...</p>
-      </div>
-    );
-  }
-
-  if (!profile || !metrics || !progress) {
-    return (
-      <div className="max-w-xl mx-auto py-16 text-center space-y-6">
-        <div className="p-4 rounded-3xl bg-sky-500/10 text-sky-400 w-fit mx-auto border border-sky-500/20">
-          <Droplets className="h-10 w-10" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-white">No Hydration Plan Found</h2>
-          <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            Calculate your personalized water target and 7-stage intake schedule by creating your health profile.
-          </p>
-        </div>
-        <Link
-          href="/onboarding"
-          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-sm shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all"
-        >
-          <Sparkles className="h-4 w-4" />
-          Create Plan Now
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6">
       <HydrationScheduleView
-        weightKg={profile.weight_kg}
-        activityLevel={profile.activity_level}
-        progress={progress}
+        weightKg={profile.weight_kg || profile.weight || 70}
+        activityLevel={(profile.activity_level as any) || 'moderately_active'}
+        progress={
+          todayProgress || {
+            progress_date: getTodayDateString(),
+            breakfast_completed: false,
+            morning_snack_completed: false,
+            lunch_completed: false,
+            evening_snack_completed: false,
+            dinner_completed: false,
+            workout_completed: false,
+            water_completed_ml: 0,
+            sleep_completed_minutes: 0,
+            completion_percentage: 0,
+          }
+        }
         onAddWater={handleAddWater}
       />
     </div>

@@ -1,154 +1,82 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { TrendingUp, Sparkles, ArrowRight } from 'lucide-react';
-import { UserProfile, HealthCalculations } from '@/types/health';
-import { WeightLog, WaterLog, SleepLog, DailyProgress } from '@/types/progress';
-import { localStore } from '@/lib/localStore';
-import { getClientUserId } from '@/lib/anonymousUser';
+import React from 'react';
 import { ProgressAnalyticsView } from '@/components/progress/ProgressAnalyticsView';
+import { useProfile, useMetrics, useWeightLogs, useWaterLogs, useSleepLogs, useAllProgress } from '@/lib/hooks';
+import { localStore } from '@/lib/storage/localStore';
+import Link from 'next/link';
+import { TrendingUp, ArrowRight } from 'lucide-react';
 
 export default function ProgressPage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [metrics, setMetrics] = useState<HealthCalculations | null>(null);
-  const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
-  const [waterLogs, setWaterLogs] = useState<WaterLog[]>([]);
-  const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([]);
-  const [allProgress, setAllProgress] = useState<Record<string, DailyProgress>>({});
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = () => {
-    setIsLoading(true);
-    const storedProfile = localStore.getProfile();
-    const storedMetrics = localStore.getMetrics();
-    const wLogs = localStore.getWeightLogs();
-    const wtLogs = localStore.getWaterLogs();
-    const sLogs = localStore.getSleepLogs();
-    const prog = localStore.getAllProgress();
-
-    setProfile(storedProfile);
-    setMetrics(storedMetrics);
-    setWeightLogs(wLogs);
-    setWaterLogs(wtLogs);
-    setSleepLogs(sLogs);
-    setAllProgress(prog);
-    setIsLoading(false);
-  };
-
-  const handleAddWeight = (weight: number, notes?: string) => {
-    const userId = getClientUserId();
-    const log: WeightLog = {
-      anonymous_user_id: userId,
-      weight_kg: weight,
-      notes,
-      logged_at: new Date().toISOString(),
-    };
-    localStore.addWeightLog(log);
-    setWeightLogs((prev) => [log, ...prev]);
-
-    // Background API
-    fetch('/api/weight', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(log),
-    }).catch((e) => console.warn('Weight sync note:', e));
-  };
-
-  const handleAddWater = (amountMl: number) => {
-    const userId = getClientUserId();
-    const log: WaterLog = {
-      anonymous_user_id: userId,
-      amount_ml: amountMl,
-      logged_at: new Date().toISOString(),
-    };
-    localStore.addWaterLog(log);
-    setWaterLogs((prev) => [log, ...prev]);
-
-    // Update today's progress
-    const today = localStore.getTodayProgress(userId, metrics?.waterTarget || 2800);
-    const updated = {
-      ...today,
-      water_completed_ml: (today.water_completed_ml || 0) + amountMl,
-    };
-    localStore.saveTodayProgress(updated);
-    setAllProgress(localStore.getAllProgress());
-
-    fetch('/api/water', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(log),
-    }).catch((e) => console.warn('Water sync note:', e));
-  };
-
-  const handleAddSleep = (start: string, end: string, durationMinutes: number, quality?: number) => {
-    const userId = getClientUserId();
-    const log: SleepLog = {
-      anonymous_user_id: userId,
-      sleep_start: start,
-      sleep_end: end,
-      duration_minutes: durationMinutes,
-      quality_rating: quality as any,
-      logged_at: new Date().toISOString(),
-    };
-    localStore.addSleepLog(log);
-    setSleepLogs((prev) => [log, ...prev]);
-
-    // Update today's progress
-    const today = localStore.getTodayProgress(userId, metrics?.waterTarget || 2800);
-    const updated = {
-      ...today,
-      sleep_completed_minutes: durationMinutes,
-    };
-    localStore.saveTodayProgress(updated);
-    setAllProgress(localStore.getAllProgress());
-
-    fetch('/api/sleep', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(log),
-    }).catch((e) => console.warn('Sleep sync note:', e));
-  };
-
-  if (isLoading) {
-    return (
-      <div className="py-20 text-center space-y-4">
-        <div className="w-12 h-12 rounded-full border-4 border-emerald-500/20 border-t-emerald-400 animate-spin mx-auto" />
-        <p className="text-sm text-slate-400">Loading progress analytics...</p>
-      </div>
-    );
-  }
+  const profile = useProfile();
+  const metrics = useMetrics();
+  const weightLogs = useWeightLogs();
+  const waterLogs = useWaterLogs();
+  const sleepLogs = useSleepLogs();
+  const allProgress = useAllProgress();
 
   if (!profile || !metrics) {
     return (
-      <div className="max-w-xl mx-auto py-16 text-center space-y-6">
-        <div className="p-4 rounded-3xl bg-cyan-500/10 text-cyan-400 w-fit mx-auto border border-cyan-500/20">
-          <TrendingUp className="h-10 w-10" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-white">No Health Plan Found</h2>
-          <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            Create your health baseline to unlock weight trends, fluid balance, and habit analytics.
+      <div className="min-h-screen bg-slate-50/50 py-16 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full p-8 bg-white border border-slate-200 rounded-3xl text-center space-y-4 shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+            <TrendingUp className="w-7 h-7" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Set Up Your Profile</h2>
+          <p className="text-sm text-slate-500">
+            Please complete your onboarding profile to begin logging weight and viewing health analytics.
           </p>
+          <Link
+            href="/onboarding"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition-all"
+          >
+            <span>Start Onboarding</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-        <Link
-          href="/onboarding"
-          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-sm shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all"
-        >
-          <Sparkles className="h-4 w-4" />
-          Create Plan Now
-          <ArrowRight className="h-4 w-4" />
-        </Link>
       </div>
     );
   }
 
+  const handleAddWeight = (weight: number, notes?: string) => {
+    const uId = profile.user_id || profile.anonymous_user_id || 'user';
+    localStore.addWeightLog({
+      user_id: uId,
+      weight_kg: weight,
+      notes,
+      logged_at: new Date().toISOString(),
+    });
+  };
+
+  const handleAddWater = (amountMl: number) => {
+    const uId = profile.user_id || profile.anonymous_user_id || 'user';
+    localStore.addWaterLog({
+      user_id: uId,
+      amount_ml: amountMl,
+      logged_at: new Date().toISOString(),
+    });
+    const prog = localStore.getTodayProgress(uId);
+    prog.water_completed_ml = (prog.water_completed_ml || 0) + amountMl;
+    localStore.saveTodayProgress(prog);
+  };
+
+  const handleAddSleep = (start: string, end: string, durationMinutes: number, quality?: number) => {
+    const uId = profile.user_id || profile.anonymous_user_id || 'user';
+    localStore.addSleepLog({
+      user_id: uId,
+      sleep_start: start,
+      sleep_end: end,
+      duration_minutes: durationMinutes,
+      quality_rating: (quality as 1 | 2 | 3 | 4 | 5) || 4,
+      logged_at: new Date().toISOString(),
+    });
+    const prog = localStore.getTodayProgress(uId);
+    prog.sleep_completed_minutes = durationMinutes;
+    localStore.saveTodayProgress(prog);
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6">
       <ProgressAnalyticsView
         profile={profile}
         metrics={metrics}

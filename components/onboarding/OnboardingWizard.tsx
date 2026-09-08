@@ -2,359 +2,540 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import confetti from 'canvas-confetti';
-import { ArrowLeft, ArrowRight, CheckCircle2, Sparkles, Loader2, Shield } from 'lucide-react';
 import {
-  bodyInfoSchema,
-  lifestyleSchema,
-  goalSchema,
-  nutritionPreferencesSchema,
-  FullOnboardingInput,
-} from '@/lib/validation';
-import { Step1Body } from './Step1Body';
-import { Step2Lifestyle } from './Step2Lifestyle';
-import { Step3Goal } from './Step3Goal';
-import { Step4Diet } from './Step4Diet';
-import { getClientUserId } from '@/lib/anonymousUser';
-import { localStore } from '@/lib/localStore';
-import { calculateAllHealthMetrics } from '@/lib/nutrition/calculations';
-import { generateWeeklyPlan } from '@/lib/nutrition/dietGenerator';
-
-const INITIAL_FORM: FullOnboardingInput = {
-  weight_kg: 70,
-  height_cm: 175,
-  age: 24,
-  sex: 'male',
-  activity_level: 'moderately_active',
-  average_steps: 8000,
-  workout_frequency: 3,
-  workout_preference: 'mixed',
-  goal: 'maintain_weight',
-  goal_pace: 'moderate',
-  diet_preference: 'vegetarian',
-  cuisine_preference: 'indian',
-  dietary_restrictions: [],
-};
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  Scale,
+  Flame,
+  Activity,
+  Salad,
+} from 'lucide-react';
+import { OnboardingData, Gender, Goal, ActivityLevel, DietType } from '@/types/user';
+import {
+  saveProfileAndTargets,
+  createAndSave7DayPlan,
+} from '@/lib/supabase/database';
+import { getClientUserId } from '@/lib/storage/anonymousUser';
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<FullOnboardingInput>(() => {
-    const existing = localStore.getProfile();
-    return existing
-      ? {
-          weight_kg: existing.weight_kg,
-          height_cm: existing.height_cm,
-          age: existing.age,
-          sex: existing.sex,
-          activity_level: existing.activity_level,
-          average_steps: existing.average_steps || 8000,
-          workout_frequency: existing.workout_frequency || 3,
-          workout_preference: existing.workout_preference || 'mixed',
-          goal: existing.goal,
-          goal_pace: existing.goal_pace || 'moderate',
-          diet_preference: existing.diet_preference,
-          cuisine_preference: existing.cuisine_preference,
-          dietary_restrictions: existing.dietary_restrictions || [],
-        }
-      : INITIAL_FORM;
+  const [step, setStep] = useState<number>(1);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form State
+  const [formData, setFormData] = useState<OnboardingData>({
+    age: 25,
+    gender: 'male',
+    height: 175,
+    height_unit: 'cm',
+    weight: 70,
+    weight_unit: 'kg',
+    activity_level: 'moderately_active',
+    goal: 'lose_weight',
+    diet_type: 'vegetarian',
+    allergies: [],
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
-
-  const updateField = (field: string, value: any) => {
+  const updateForm = <K extends keyof OnboardingData>(field: K, value: OnboardingData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[field];
-        return next;
-      });
-    }
+    setError(null);
   };
 
-  const validateCurrentStep = (): boolean => {
-    let result;
+  const handleAllergyToggle = (allergy: string) => {
+    setFormData((prev) => {
+      const current = prev.allergies || [];
+      const updated = current.includes(allergy)
+        ? current.filter((a) => a !== allergy)
+        : [...current, allergy];
+      return { ...prev, allergies: updated };
+    });
+  };
+
+  const validateStep = (currentStep: number): boolean => {
     if (currentStep === 1) {
-      result = bodyInfoSchema.safeParse({
-        weight_kg: formData.weight_kg,
-        height_cm: formData.height_cm,
-        age: formData.age,
-        sex: formData.sex,
-      });
-    } else if (currentStep === 2) {
-      result = lifestyleSchema.safeParse({
-        activity_level: formData.activity_level,
-        average_steps: formData.average_steps,
-        workout_frequency: formData.workout_frequency,
-        workout_preference: formData.workout_preference,
-      });
-    } else if (currentStep === 3) {
-      result = goalSchema.safeParse({
-        goal: formData.goal,
-        goal_pace: formData.goal_pace,
-      });
-    } else {
-      result = nutritionPreferencesSchema.safeParse({
-        diet_preference: formData.diet_preference,
-        cuisine_preference: formData.cuisine_preference,
-        dietary_restrictions: formData.dietary_restrictions,
-      });
+      if (!formData.age || formData.age < 12 || formData.age > 100) {
+        setError('Please enter a valid age between 12 and 100 years.');
+        return false;
+      }
+      if (!formData.height || formData.height <= 0) {
+        setError('Please enter a valid height.');
+        return false;
+      }
+      if (!formData.weight || formData.weight <= 0) {
+        setError('Please enter a valid weight.');
+        return false;
+      }
     }
-
-    if (!result.success) {
-      const errMap: Record<string, string> = {};
-      const issues = (result as any).error?.issues || (result as any).error?.errors || [];
-      issues.forEach((e: any) => {
-        const field = e.path?.[0] as string;
-        if (field) errMap[field] = e.message;
-      });
-      setErrors(errMap);
-      return false;
-    }
-
-    setErrors({});
     return true;
   };
 
   const handleNext = () => {
-    if (validateCurrentStep()) {
-      if (currentStep < 4) {
-        setCurrentStep((prev) => prev + 1);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        handleGeneratePlan();
-      }
+    if (validateStep(step)) {
+      setStep((prev) => Math.min(prev + 1, 4));
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    setError(null);
+    setStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleGeneratePlan = async () => {
-    setIsGenerating(true);
-    setStatusMessage('Computing Mifflin-St Jeor metabolic equations...');
+  const handleSubmit = async () => {
+    if (!validateStep(step)) return;
+
+    setIsSubmitting(true);
+    setError(null);
 
     try {
       const userId = getClientUserId();
+      const heightInCm =
+        formData.height_unit === 'ft'
+          ? Math.round(formData.height * 30.48)
+          : formData.height;
+      const weightInKg =
+        formData.weight_unit === 'lbs'
+          ? Math.round(formData.weight * 0.453592)
+          : formData.weight;
 
-      // 1. Calculate local metrics and weekly plan instantly for instantaneous feedback
-      const metrics = calculateAllHealthMetrics(
-        formData.weight_kg,
-        formData.height_cm,
-        formData.age,
-        formData.sex,
-        formData.activity_level,
-        formData.goal,
-        formData.goal_pace
-      );
-
-      setStatusMessage('Balancing macronutrients and assembling 7-day meal rotation...');
-      const weeklyPlan = generateWeeklyPlan(
-        metrics.targetCalories,
-        metrics.proteinTarget,
-        formData.diet_preference,
-        formData.cuisine_preference,
-        formData.dietary_restrictions,
-        metrics.waterTarget,
-        metrics.sleepTargetMinutes,
-        formData.activity_level,
-        formData.goal
-      );
-
-      // Save to local storage for instant access
-      const userProfile = {
-        anonymous_user_id: userId,
-        ...formData,
+      const profilePayload = {
+        age: formData.age,
+        gender: formData.gender,
+        sex: formData.gender,
+        height: heightInCm,
+        height_cm: heightInCm,
+        weight: weightInKg,
+        weight_kg: weightInKg,
+        activity_level: formData.activity_level,
+        goal: formData.goal,
+        diet_type: formData.diet_type,
+        diet_preference: formData.diet_type,
+        allergies: formData.allergies,
+        dietary_restrictions: formData.allergies,
+        full_name: 'HealthFit Explorer',
       };
-      localStore.setProfile(userProfile);
-      localStore.setMetrics(metrics);
-      localStore.setWeeklyPlan(weeklyPlan);
 
-      // 2. Call background API route for server/Supabase synchronization
-      setStatusMessage('Finalizing your personalized plan...');
-      try {
-        await fetch('/api/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ anonymous_user_id: userId, ...formData }),
-        });
+      // 1. Save Profile & Calculate all Health Targets
+      const { profile, targets } = await saveProfileAndTargets(userId, profilePayload);
 
-        await fetch('/api/health-metrics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            anonymous_user_id: userId,
-            metrics,
-            profile: formData,
-          }),
-        });
+      // 2. Generate and Persist 7-Day Plan
+      await createAndSave7DayPlan(userId, targets, profile);
 
-        await fetch('/api/generate-plan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            anonymous_user_id: userId,
-            profile: userProfile,
-          }),
-        });
-      } catch (apiErr) {
-        console.warn('API sync completed locally:', apiErr);
-      }
-
-      // Celebrate with confetti
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#34d399', '#38bdf8', '#fbbf24', '#818cf8'],
-        });
-      } catch {
-        // ignore
-      }
-
-      // Redirect to dashboard
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
+      router.push('/dashboard');
     } catch (err: any) {
-      console.error('Plan generation failed', err);
-      setIsGenerating(false);
+      console.error('Onboarding Submission Error:', err);
+      setError(err?.message || 'Something went wrong while generating your plan. Please try again.');
+      setIsSubmitting(false);
     }
   };
 
-  const stepTitles = ['Body Metrics', 'Lifestyle', 'Primary Goal', 'Nutrition'];
+  const ALLERGIES_LIST = [
+    { id: 'dairy', label: '🥛 Dairy' },
+    { id: 'nuts', label: '🥜 Peanuts & Tree Nuts' },
+    { id: 'gluten', label: '🌾 Gluten / Wheat' },
+    { id: 'eggs', label: '🥚 Eggs' },
+    { id: 'seafood', label: '🐟 Fish & Seafood' },
+    { id: 'soy', label: '🌱 Soy' },
+  ];
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      {/* Stepper Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-3 text-xs font-semibold text-slate-400">
-          <span>
-            Step {currentStep} of 4: <strong className="text-emerald-400">{stepTitles[currentStep - 1]}</strong>
+    <div className="mx-auto max-w-2xl px-2 sm:px-4">
+      {/* Step Indicators */}
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] sm:text-xs font-bold text-emerald-700 uppercase tracking-wider">
+            Step {step} of 4
           </span>
-          <span className="text-emerald-400">{currentStep * 25}% Completed</span>
+          <span className="text-xs sm:text-sm font-semibold text-slate-600">
+            {step === 1 && 'Basic Information'}
+            {step === 2 && 'Primary Goal'}
+            {step === 3 && 'Activity Level'}
+            {step === 4 && 'Food Preferences'}
+          </span>
         </div>
-
-        {/* Progress Bar */}
-        <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden border border-white/5">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 transition-all duration-500 rounded-full"
-            style={{ width: `${currentStep * 25}%` }}
-          />
-        </div>
-
-        {/* Steps Indicators */}
-        <div className="grid grid-cols-4 gap-2 mt-4">
-          {[1, 2, 3, 4].map((step) => {
-            const isCompleted = step < currentStep;
-            const isCurrent = step === currentStep;
-            return (
-              <div
-                key={step}
-                className={`flex items-center gap-1.5 p-2 rounded-xl text-xs font-semibold border transition-all ${
-                  isCurrent
-                    ? 'bg-emerald-500/15 border-emerald-500 text-emerald-300'
-                    : isCompleted
-                    ? 'bg-slate-900 border-white/10 text-slate-300'
-                    : 'bg-slate-950/40 border-white/5 text-slate-600'
-                }`}
-              >
-                <div
-                  className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    isCurrent
-                      ? 'bg-emerald-400 text-slate-950'
-                      : isCompleted
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-slate-800 text-slate-500'
-                  }`}
-                >
-                  {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : step}
-                </div>
-                <span className="hidden sm:inline truncate">{stepTitles[step - 1]}</span>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                i <= step ? 'bg-emerald-600' : 'bg-slate-200'
+              }`}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Main Form Card */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-[#111928]/80 border border-white/10 backdrop-blur-xl shadow-2xl relative">
-        {isGenerating ? (
-          <div className="py-16 text-center space-y-5 animate-in fade-in duration-300">
-            <div className="relative inline-flex items-center justify-center">
-              <div className="w-20 h-20 rounded-full border-4 border-emerald-500/20 border-t-emerald-400 animate-spin" />
-              <Sparkles className="h-8 w-8 text-emerald-400 absolute" />
+      {/* Card Container */}
+      <div className="rounded-3xl border border-slate-200/90 bg-white/95 p-4 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
+        {/* STEP 1: Basic Information */}
+        {step === 1 && (
+          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+                <Scale className="h-6 w-6 text-emerald-600 shrink-0" />
+                <span>Tell us about your body</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                We&apos;ll calculate your exact metabolic rate and daily calorie baseline.
+              </p>
             </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-white">Generating Your HealthFit Plan</h3>
-              <p className="text-sm text-slate-400 max-w-md mx-auto">{statusMessage}</p>
+
+            {/* Gender Selection */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                Biological Sex
+              </label>
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                {(['male', 'female'] as Gender[]).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => updateForm('gender', g)}
+                    className={`py-3 px-4 rounded-2xl border font-bold text-sm capitalize transition-all touch-manipulation min-h-[48px] flex items-center justify-center gap-1.5 ${
+                      formData.gender === g
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-xs'
+                        : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    {g === 'male' ? '👨 Male' : '👩 Female'}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        ) : (
-          <div>
-            {currentStep === 1 && (
-              <Step1Body formData={formData} updateField={updateField} errors={errors} />
-            )}
-            {currentStep === 2 && (
-              <Step2Lifestyle formData={formData} updateField={updateField} errors={errors} />
-            )}
-            {currentStep === 3 && (
-              <Step3Goal formData={formData} updateField={updateField} errors={errors} />
-            )}
-            {currentStep === 4 && (
-              <Step4Diet formData={formData} updateField={updateField} errors={errors} />
-            )}
 
-            {/* Navigation Buttons */}
-            <div className="flex items-center justify-between pt-8 mt-8 border-t border-white/10">
-              <button
-                type="button"
-                onClick={handleBack}
-                disabled={currentStep === 1}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  currentStep === 1
-                    ? 'opacity-0 pointer-events-none'
-                    : 'bg-slate-900 border border-white/10 text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Previous
-              </button>
+            {/* Responsive 2-Col Grid for Measurements */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Age */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                  Age (Years)
+                </label>
+                <input
+                  type="number"
+                  min="12"
+                  max="100"
+                  value={formData.age}
+                  onChange={(e) => updateForm('age', parseInt(e.target.value, 10) || 0)}
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 font-bold text-base focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 min-h-[48px]"
+                  placeholder="25"
+                />
+              </div>
 
-              <button
-                type="button"
-                onClick={handleNext}
-                className="flex items-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95"
-              >
-                {currentStep === 4 ? (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    Generate My Plan
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
+              {/* Height */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                    Height
+                  </label>
+                  <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => updateForm('height_unit', 'cm')}
+                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                        formData.height_unit === 'cm'
+                          ? 'bg-emerald-600 text-white'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      cm
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateForm('height_unit', 'ft')}
+                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                        formData.height_unit === 'ft'
+                          ? 'bg-emerald-600 text-white'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      ft
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.height}
+                  onChange={(e) => updateForm('height', parseFloat(e.target.value) || 0)}
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 font-bold text-base focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 min-h-[48px]"
+                  placeholder={formData.height_unit === 'cm' ? '175' : '5.9'}
+                />
+              </div>
+
+              {/* Weight */}
+              <div className="sm:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                    Weight
+                  </label>
+                  <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => updateForm('weight_unit', 'kg')}
+                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                        formData.weight_unit === 'kg'
+                          ? 'bg-emerald-600 text-white'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      kg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateForm('weight_unit', 'lbs')}
+                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                        formData.weight_unit === 'lbs'
+                          ? 'bg-emerald-600 text-white'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      lbs
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.weight}
+                  onChange={(e) => updateForm('weight', parseFloat(e.target.value) || 0)}
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 font-bold text-base focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 min-h-[48px]"
+                  placeholder={formData.weight_unit === 'kg' ? '70' : '154'}
+                />
+              </div>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Anonymous Privacy Note */}
-      <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500">
-        <Shield className="h-3.5 w-3.5 text-emerald-400" />
-        <span>No sign-up or credit card required. Instant anonymous access.</span>
+        {/* STEP 2: Goal */}
+        {step === 2 && (
+          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+                <Flame className="h-6 w-6 text-emerald-600 shrink-0" />
+                <span>What is your primary goal?</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                We&apos;ll customize your daily caloric deficit or surplus accordingly.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 sm:space-y-3">
+              {[
+                {
+                  id: 'lose_weight' as Goal,
+                  title: 'Lose Weight & Body Fat',
+                  desc: 'Safe, sustainable caloric deficit while preserving lean muscle mass',
+                  icon: '🔥',
+                },
+                {
+                  id: 'maintain_weight' as Goal,
+                  title: 'Maintain Weight & Energy',
+                  desc: 'Balanced nutrition at your exact daily energy expenditure',
+                  icon: '⚖️',
+                },
+                {
+                  id: 'gain_weight' as Goal,
+                  title: 'Gain Weight & Muscle',
+                  desc: 'High-protein caloric surplus to support hypertrophy',
+                  icon: '💪',
+                },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => updateForm('goal', item.id)}
+                  className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-start gap-3.5 sm:gap-4 touch-manipulation min-h-[56px] active:scale-[0.99] ${
+                    formData.goal === item.id
+                      ? 'border-emerald-500 bg-emerald-50/90 shadow-md shadow-emerald-500/10'
+                      : 'border-slate-200 bg-slate-50/60 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-2xl shrink-0">{item.icon}</span>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">{item.title}</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-0.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: Activity Level */}
+        {step === 3 && (
+          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+                <Activity className="h-6 w-6 text-emerald-600 shrink-0" />
+                <span>How active are you daily?</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                This determines your Total Daily Energy Expenditure (TDEE).
+              </p>
+            </div>
+
+            <div className="space-y-2.5 sm:space-y-3">
+              {[
+                {
+                  id: 'sedentary' as ActivityLevel,
+                  title: 'Sedentary',
+                  desc: 'Desk job, minimal exercise, under 5,000 steps/day (1.2x)',
+                  icon: '🛋️',
+                },
+                {
+                  id: 'lightly_active' as ActivityLevel,
+                  title: 'Lightly Active',
+                  desc: 'Light daily walking, 1-2 workout sessions per week (1.375x)',
+                  icon: '🚶',
+                },
+                {
+                  id: 'moderately_active' as ActivityLevel,
+                  title: 'Moderately Active',
+                  desc: 'Moderate exercise 3-5 times a week, active lifestyle (1.55x)',
+                  icon: '🏃',
+                },
+                {
+                  id: 'very_active' as ActivityLevel,
+                  title: 'Very Active',
+                  desc: 'Hard exercise 6-7 days/week, highly demanding physical routine (1.725x)',
+                  icon: '⚡',
+                },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => updateForm('activity_level', item.id)}
+                  className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-start gap-3.5 sm:gap-4 touch-manipulation min-h-[56px] active:scale-[0.99] ${
+                    formData.activity_level === item.id
+                      ? 'border-emerald-500 bg-emerald-50/90 shadow-md shadow-emerald-500/10'
+                      : 'border-slate-200 bg-slate-50/60 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-2xl shrink-0">{item.icon}</span>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">{item.title}</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-0.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: Food Preference & Allergies */}
+        {step === 4 && (
+          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+                <Salad className="h-6 w-6 text-emerald-600 shrink-0" />
+                <span>Diet Preferences &amp; Allergies</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Your 7-day meal plan will be tailored strictly to these preferences.
+              </p>
+            </div>
+
+            {/* Diet Type */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                Diet Type
+              </label>
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                {[
+                  { id: 'vegetarian' as DietType, label: '🥗 Vegetarian' },
+                  { id: 'non_vegetarian' as DietType, label: '🍗 Non-Veg' },
+                  { id: 'eggetarian' as DietType, label: '🍳 Eggetarian' },
+                  { id: 'vegan' as DietType, label: '🌱 100% Vegan' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => updateForm('diet_type', item.id)}
+                    className={`py-3 sm:py-3.5 px-3 sm:px-4 rounded-2xl border font-bold text-xs sm:text-sm transition-all touch-manipulation min-h-[48px] flex items-center justify-center ${
+                      formData.diet_type === item.id
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-xs'
+                        : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Allergies / Exclusions */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                Allergies &amp; Exclusions (Optional)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
+                {ALLERGIES_LIST.map((item) => {
+                  const isSelected = (formData.allergies || []).includes(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleAllergyToggle(item.id)}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all touch-manipulation min-h-[44px] flex items-center justify-center ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-100 text-emerald-800'
+                          : 'border-slate-200 bg-slate-50/70 text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error message */}
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
+            {error}
+          </div>
+        )}
+
+        {/* Navigation Buttons */}
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-200">
+          {step > 1 ? (
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleBack}
+              className="flex items-center gap-2 py-3 px-4 sm:px-5 rounded-2xl border border-slate-300 text-slate-700 font-bold text-xs sm:text-sm hover:bg-slate-100 transition-colors cursor-pointer touch-manipulation min-h-[48px]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back</span>
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {step < 4 ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              className="flex items-center gap-2 py-3 px-6 sm:px-7 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer touch-manipulation min-h-[48px]"
+            >
+              <span>Next</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSubmit}
+              className="flex items-center gap-2 py-3 px-5 sm:px-7 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black text-xs sm:text-base shadow-lg shadow-emerald-600/25 transition-all active:scale-95 disabled:opacity-50 cursor-pointer touch-manipulation min-h-[48px]"
+            >
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+              <span>{isSubmitting ? 'Generating...' : 'Generate My Plan'}</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,79 +1,45 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Moon, Sparkles, ArrowRight } from 'lucide-react';
-import { UserProfile, HealthCalculations } from '@/types/health';
-import { DailyProgress } from '@/types/progress';
-import { localStore } from '@/lib/localStore';
-import { getClientUserId } from '@/lib/anonymousUser';
+import React from 'react';
 import { SleepScheduleView } from '@/components/sleep/SleepScheduleView';
+import { useProfile, useTodayProgress } from '@/lib/hooks';
+import Link from 'next/link';
+import { Moon, ArrowRight } from 'lucide-react';
 
 export default function SleepPage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [metrics, setMetrics] = useState<HealthCalculations | null>(null);
-  const [progress, setProgress] = useState<DailyProgress | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const profile = useProfile();
+  const todayProgress = useTodayProgress();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = () => {
-    setIsLoading(true);
-    const storedProfile = localStore.getProfile();
-    const storedMetrics = localStore.getMetrics();
-    const userId = getClientUserId();
-
-    if (storedProfile && storedMetrics) {
-      setProfile(storedProfile);
-      setMetrics(storedMetrics);
-      const todayProgress = localStore.getTodayProgress(userId, storedMetrics.waterTarget);
-      setProgress(todayProgress);
-    }
-    setIsLoading(false);
-  };
-
-  if (isLoading) {
+  if (!profile) {
     return (
-      <div className="py-20 text-center space-y-4">
-        <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-400 animate-spin mx-auto" />
-        <p className="text-sm text-slate-400">Loading sleep & recovery center...</p>
-      </div>
-    );
-  }
-
-  if (!profile || !metrics || !progress) {
-    return (
-      <div className="max-w-xl mx-auto py-16 text-center space-y-6">
-        <div className="p-4 rounded-3xl bg-indigo-500/10 text-indigo-400 w-fit mx-auto border border-indigo-500/20">
-          <Moon className="h-10 w-10" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-white">No Sleep Plan Found</h2>
-          <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            Calculate your circadian bedtime recommendation and 4-step wind-down protocol by creating your health profile.
+      <div className="min-h-screen bg-slate-50/50 py-16 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full p-8 bg-white border border-slate-200 rounded-3xl text-center space-y-4 shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center mx-auto">
+            <Moon className="w-7 h-7" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Set Up Your Profile</h2>
+          <p className="text-sm text-slate-500">
+            Please complete your onboarding profile to calculate your 90-minute circadian sleep cycles and wind-down protocol.
           </p>
+          <Link
+            href="/onboarding"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition-all"
+          >
+            <span>Start Onboarding</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-        <Link
-          href="/onboarding"
-          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-sm shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all"
-        >
-          <Sparkles className="h-4 w-4" />
-          Create Plan Now
-          <ArrowRight className="h-4 w-4" />
-        </Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6">
       <SleepScheduleView
-        age={profile.age}
-        activityLevel={profile.activity_level}
-        goal={profile.goal}
-        progress={progress}
+        age={profile.age || 25}
+        activityLevel={(profile.activity_level as any) || 'moderately_active'}
+        goal={(profile.goal as any) || 'lose_weight'}
+        progress={todayProgress || undefined}
       />
     </div>
   );

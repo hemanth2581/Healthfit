@@ -1,28 +1,48 @@
-import { ActivityLevel, BMICalculation, Goal, GoalPace, HealthCalculations, Sex } from '@/types/health';
+import { Gender, Goal, ActivityLevel } from '@/types/user';
+import { BMICalculation } from '@/types/health';
+
+export function lbsToKg(lbs: number): number {
+  return Math.round((lbs * 0.45359237) * 10) / 10;
+}
+
+export function kgToLbs(kg: number): number {
+  return Math.round((kg * 2.20462) * 10) / 10;
+}
+
+export function ftInToCm(feet: number, inches: number = 0): number {
+  return Math.round((feet * 30.48 + inches * 2.54) * 10) / 10;
+}
+
+export function cmToFtIn(cm: number): { feet: number; inches: number } {
+  const totalInches = cm / 2.54;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Math.round(totalInches % 12);
+  return { feet, inches };
+}
 
 /**
- * Calculate Body Mass Index (BMI) and categorization.
- * BMI = weight (kg) / (height (m))^2
+ * Body Mass Index (BMI)
  */
 export function calculateBMI(weightKg: number, heightCm: number): BMICalculation {
   const heightM = heightCm / 100;
-  const bmi = Math.round((weightKg / (heightM * heightM)) * 10) / 10;
+  const rawBmi = weightKg / (heightM * heightM);
+  const bmi = Math.round(rawBmi * 10) / 10;
 
   let category: BMICalculation['category'] = 'Normal weight';
-  let color = 'text-emerald-500';
+  let color = 'text-emerald-600';
 
   if (bmi < 18.5) {
     category = 'Underweight';
-    color = 'text-amber-500';
+    color = 'text-amber-600';
   } else if (bmi <= 24.9) {
     category = 'Normal weight';
-    color = 'text-emerald-500';
+    color = 'text-emerald-600';
   } else if (bmi <= 29.9) {
     category = 'Overweight';
-    color = 'text-orange-500';
+    color = 'text-orange-600';
   } else {
     category = 'Obese';
-    color = 'text-rose-500';
+    color = 'text-rose-600';
   }
 
   const minHealthyWeight = Math.round(18.5 * heightM * heightM * 10) / 10;
@@ -40,172 +60,194 @@ export function calculateBMI(weightKg: number, heightCm: number): BMICalculation
 }
 
 /**
- * Calculate Basal Metabolic Rate (BMR) using the Mifflin-St Jeor formula:
- * Male: 10 * W + 6.25 * H - 5 * A + 5
- * Female: 10 * W + 6.25 * H - 5 * A - 161
+ * Basal Metabolic Rate (BMR) - Mifflin-St Jeor
  */
-export function calculateBMR(weightKg: number, heightCm: number, age: number, sex: Sex): number {
+export function calculateBMR(
+  weightKg: number,
+  heightCm: number,
+  age: number,
+  gender: Gender = 'male'
+): number {
   const base = 10 * weightKg + 6.25 * heightCm - 5 * age;
-  if (sex === 'male') {
+  if (gender === 'male') {
     return Math.round(base + 5);
-  } else if (sex === 'female') {
+  } else if (gender === 'female') {
     return Math.round(base - 161);
   } else {
-    // Non-binary/other: midpoint approximation
     return Math.round(base - 78);
   }
 }
 
-export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
+export const ACTIVITY_MULTIPLIERS: Record<string, number> = {
   sedentary: 1.2,
   lightly_active: 1.375,
+  light: 1.375,
   moderately_active: 1.55,
+  moderate: 1.55,
   very_active: 1.725,
   extremely_active: 1.9,
+  extra_active: 1.9,
 };
 
 /**
- * Calculate Total Daily Energy Expenditure (TDEE).
- * TDEE = BMR * Activity Multiplier
+ * Total Daily Energy Expenditure (TDEE)
  */
-export function calculateTDEE(bmr: number, activityLevel: ActivityLevel): number {
-  const multiplier = ACTIVITY_MULTIPLIERS[activityLevel] || 1.2;
-  return Math.round(bmr * multiplier);
+export function calculateTDEE(bmr: number, activityLevel: ActivityLevel | string): number {
+  const mult = ACTIVITY_MULTIPLIERS[activityLevel] ?? 1.2;
+  return Math.round(bmr * mult);
 }
 
 /**
- * Calculate safe target calories based on TDEE, goal, and pace.
+ * Daily Calorie Target
  */
-export function calculateTargetCalories(
+export function calculateDailyCalories(
   tdee: number,
-  goal: Goal,
-  sex: Sex = 'male',
-  pace: GoalPace = 'moderate'
+  goal: Goal | string,
+  gender: Gender = 'male'
 ): number {
   let target = tdee;
 
-  if (goal === 'lose_weight') {
-    const deficitPercentage = pace === 'conservative' ? 0.12 : pace === 'aggressive' ? 0.22 : 0.18;
-    const rawDeficit = Math.round(tdee * deficitPercentage);
-    const deficit = Math.min(rawDeficit, 600); // safety cap
+  if (goal === 'lose_weight' || goal === 'fat_loss') {
+    const deficit = Math.min(Math.round(tdee * 0.18), 550); // safe 18% deficit
     target = tdee - deficit;
-
-    // Minimum safe intake floors
-    const minSafeCalories = sex === 'female' ? 1200 : 1500;
+    const minSafeCalories = gender === 'female' ? 1200 : 1500;
     target = Math.max(target, minSafeCalories);
-  } else if (goal === 'gain_weight') {
-    const surplusPercentage = pace === 'conservative' ? 0.1 : pace === 'aggressive' ? 0.18 : 0.14;
-    const surplus = Math.min(Math.round(tdee * surplusPercentage), 500);
+  } else if (goal === 'gain_weight' || goal === 'muscle_gain') {
+    const surplus = Math.min(Math.round(tdee * 0.14), 450); // safe 14% surplus
     target = tdee + surplus;
-  } else if (goal === 'improve_fitness') {
-    // Body recomposition (slight deficit or maintenance)
-    target = Math.round(tdee * 0.97);
   }
 
   return Math.round(target);
 }
 
-/**
- * Calculate protein target in grams.
- */
-export function calculateProteinTarget(
-  weightKg: number,
-  goal: Goal,
-  activityLevel: ActivityLevel
-): number {
-  let multiplier = 1.4;
-
-  if (goal === 'lose_weight') {
-    // Higher protein to spare lean muscle mass during a calorie deficit
-    multiplier = activityLevel === 'sedentary' ? 1.5 : 1.8;
-  } else if (goal === 'gain_weight') {
-    // Muscle synthesis support
-    multiplier = activityLevel === 'sedentary' ? 1.6 : 2.0;
-  } else if (goal === 'improve_fitness') {
-    multiplier = 1.7;
-  } else {
-    // Maintenance
-    multiplier = activityLevel === 'sedentary' ? 1.2 : 1.5;
-  }
-
-  return Math.round(weightKg * multiplier);
-}
+export const calculateTargetCalories = calculateDailyCalories;
 
 /**
- * Calculate complete daily macronutrient breakdown.
+ * Protein, Carbs, Fat Targets
  */
-export function calculateMacroTargets(
-  targetCalories: number,
+export function calculateMacronutrients(
+  dailyCalories: number,
   weightKg: number,
-  goal: Goal,
-  activityLevel: ActivityLevel
+  goal: Goal | string = 'maintain_weight',
+  activityLevel: ActivityLevel | string = 'moderately_active'
 ): {
   proteinTarget: number;
-  carbohydrateTarget: number;
+  carbsTarget: number;
   fatTarget: number;
   fiberTarget: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
 } {
-  const proteinTarget = calculateProteinTarget(weightKg, goal, activityLevel);
+  let proteinMultiplier = 1.4;
+  if (goal === 'lose_weight' || goal === 'fat_loss') {
+    proteinMultiplier = activityLevel === 'sedentary' ? 1.6 : 1.8;
+  } else if (goal === 'gain_weight' || goal === 'muscle_gain') {
+    proteinMultiplier = activityLevel === 'sedentary' ? 1.6 : 2.0;
+  } else {
+    proteinMultiplier = activityLevel === 'sedentary' ? 1.3 : 1.5;
+  }
+
+  const proteinTarget = Math.round(weightKg * proteinMultiplier);
   const proteinCalories = proteinTarget * 4;
 
-  // Fat target: 25-30% of total calories (minimum 0.7g per kg)
-  const fatCaloriesTarget = Math.round(targetCalories * 0.26);
-  const rawFat = Math.round(fatCaloriesTarget / 9);
+  const fatCalories = Math.round(dailyCalories * 0.26);
   const minFat = Math.round(weightKg * 0.7);
-  const fatTarget = Math.max(rawFat, minFat);
-  const fatCalories = fatTarget * 9;
+  const fatTarget = Math.max(Math.round(fatCalories / 9), minFat);
 
-  // Carbs target: remaining calories / 4
-  const remainingCalories = Math.max(0, targetCalories - (proteinCalories + fatCalories));
-  const carbohydrateTarget = Math.max(50, Math.round(remainingCalories / 4));
-
-  // Fiber target: 14g per 1000 kcal
-  const fiberTarget = Math.round((targetCalories / 1000) * 14);
+  const remainingCalories = Math.max(0, dailyCalories - (proteinCalories + fatTarget * 9));
+  const carbsTarget = Math.max(50, Math.round(remainingCalories / 4));
+  const fiberTarget = Math.round((dailyCalories / 1000) * 14);
 
   return {
     proteinTarget,
-    carbohydrateTarget,
+    carbsTarget,
     fatTarget,
     fiberTarget,
+    protein_g: proteinTarget,
+    carbs_g: carbsTarget,
+    fat_g: fatTarget,
+    fiber_g: fiberTarget,
   };
 }
 
+export const calculateMacroTargets = calculateMacronutrients;
+
+export function calculateProteinTarget(
+  weightKg: number,
+  goal: Goal | string = 'lose_weight',
+  activityLevel: ActivityLevel | string = 'moderately_active'
+): number {
+  return calculateMacronutrients(2000, weightKg, goal, activityLevel).proteinTarget;
+}
+
 /**
- * Calculate recommended daily water intake in ml.
+ * Water Target (in ml)
  */
-export function calculateWaterTarget(weightKg: number, activityLevel: ActivityLevel): number {
-  // Baseline: 35ml per kg body weight
+export function calculateWaterTarget(weightKg: number, activityLevel: ActivityLevel | string): number {
   const baseWater = weightKg * 35;
-  const activityBonus: Record<ActivityLevel, number> = {
+  const activityBonus: Record<string, number> = {
     sedentary: 0,
     lightly_active: 300,
+    light: 300,
     moderately_active: 500,
+    moderate: 500,
     very_active: 750,
     extremely_active: 1000,
+    extra_active: 1000,
   };
-
-  const totalMl = baseWater + (activityBonus[activityLevel] ?? 300);
-  // Round to nearest 100ml
+  const bonus = activityBonus[activityLevel] ?? 300;
+  const totalMl = baseWater + bonus;
   return Math.round(totalMl / 100) * 100;
 }
 
+export const calculateDailyWaterRequirement = calculateWaterTarget;
+
+export function calculateSleepRecommendation(
+  preferredBedtime: string = '23:00',
+  preferredWakeTime: string = '07:00'
+): {
+  targetHours: number;
+  recommendedBedtime: string;
+  recommendedWakeTime: string;
+  windDownSteps: { time: string; action: string }[];
+} {
+  const [bH, bM] = preferredBedtime.split(':').map(Number);
+  const [wH, wM] = preferredWakeTime.split(':').map(Number);
+  let totalMinutes = (wH * 60 + wM) - (bH * 60 + bM);
+  if (totalMinutes <= 0) totalMinutes += 24 * 60;
+  const targetHours = Math.round((totalMinutes / 60) * 10) / 10;
+
+  return {
+    targetHours: targetHours > 0 ? targetHours : 8.0,
+    recommendedBedtime: preferredBedtime,
+    recommendedWakeTime: preferredWakeTime,
+    windDownSteps: [
+      { time: '9:30 PM', action: 'Dim ambient lights & start winding down' },
+      { time: '9:45 PM', action: 'Conclude eating; avoid heavy meals' },
+      { time: '10:00 PM', action: 'Reduce blue light and screen exposure' },
+      { time: '10:30 PM', action: 'Sleep in cool, quiet environment' },
+    ],
+  };
+}
+
 /**
- * Generate full health calculations object.
+ * Consolidated Health Targets Calculation
  */
-export function calculateAllHealthMetrics(
-  weightKg: number,
-  heightCm: number,
+export function calculateAllTargets(
   age: number,
-  sex: Sex,
-  activityLevel: ActivityLevel,
-  goal: Goal,
-  goalPace: GoalPace = 'moderate'
-): HealthCalculations {
+  gender: Gender,
+  heightCm: number,
+  weightKg: number,
+  goal: Goal | string,
+  activityLevel: ActivityLevel | string
+) {
   const bmiInfo = calculateBMI(weightKg, heightCm);
-  const bmr = calculateBMR(weightKg, heightCm, age, sex);
+  const bmr = calculateBMR(weightKg, heightCm, age, gender);
   const tdee = calculateTDEE(bmr, activityLevel);
-  const targetCalories = calculateTargetCalories(tdee, goal, sex, goalPace);
-  const macros = calculateMacroTargets(targetCalories, weightKg, goal, activityLevel);
+  const dailyCalories = calculateDailyCalories(tdee, goal, gender);
+  const macros = calculateMacronutrients(dailyCalories, weightKg, goal, activityLevel);
   const waterTarget = calculateWaterTarget(weightKg, activityLevel);
 
   return {
@@ -213,13 +255,53 @@ export function calculateAllHealthMetrics(
     bmiCategory: bmiInfo.category,
     bmr,
     tdee,
-    targetCalories,
+    dailyCalories,
+    targetCalories: dailyCalories,
     proteinTarget: macros.proteinTarget,
-    carbohydrateTarget: macros.carbohydrateTarget,
+    carbsTarget: macros.carbsTarget,
+    carbohydrateTarget: macros.carbsTarget,
     fatTarget: macros.fatTarget,
     fiberTarget: macros.fiberTarget,
     waterTarget,
     waterTargetLitres: Math.round((waterTarget / 1000) * 10) / 10,
-    sleepTargetMinutes: 480, // 8 hours default
+    sleepTargetMinutes: 480,
+  };
+}
+
+export const calculateAllHealthMetrics = (
+  weightKg: number,
+  heightCm: number,
+  age: number,
+  sex: Gender,
+  activityLevel: ActivityLevel,
+  goal: Goal
+) => calculateAllTargets(age, sex, heightCm, weightKg, goal, activityLevel);
+
+export function calculateAllMetrics(params: {
+  age: number;
+  gender: Gender;
+  height: number;
+  weight: number;
+  activityLevel: ActivityLevel;
+  goal: Goal;
+}) {
+  const res = calculateAllTargets(
+    params.age,
+    params.gender,
+    params.height,
+    params.weight,
+    params.goal,
+    params.activityLevel
+  );
+  return {
+    bmi: res.bmi,
+    bmr: res.bmr,
+    tdee: res.tdee,
+    calorieTarget: res.dailyCalories,
+    proteinTarget: res.proteinTarget,
+    carbsTarget: res.carbsTarget,
+    fatTarget: res.fatTarget,
+    fiberTarget: res.fiberTarget,
+    waterTarget: res.waterTarget,
   };
 }

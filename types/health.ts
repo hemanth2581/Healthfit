@@ -1,68 +1,22 @@
-export type Sex = 'male' | 'female' | 'other';
+import { Database } from './database';
+export type {
+  UserProfile,
+  Gender,
+  Sex,
+  Goal,
+  FitnessGoal,
+  GoalPace,
+  ActivityLevel,
+  DietType,
+  DietPreference,
+  CuisinePreference,
+  AllergyRestriction,
+  WorkoutPreference,
+  OnboardingData,
+} from './user';
 
-export type ActivityLevel =
-  | 'sedentary'
-  | 'lightly_active'
-  | 'moderately_active'
-  | 'very_active'
-  | 'extremely_active';
-
-export type Goal =
-  | 'lose_weight'
-  | 'maintain_weight'
-  | 'gain_weight'
-  | 'improve_fitness';
-
-export type GoalPace = 'conservative' | 'moderate' | 'aggressive';
-
-export type DietPreference =
-  | 'vegetarian'
-  | 'non_vegetarian'
-  | 'vegan'
-  | 'eggetarian';
-
-export type CuisinePreference =
-  | 'south_indian'
-  | 'north_indian'
-  | 'indian'
-  | 'international'
-  | 'mixed';
-
-export type AllergyRestriction =
-  | 'dairy'
-  | 'eggs'
-  | 'nuts'
-  | 'gluten'
-  | 'seafood'
-  | 'soy'
-  | 'other';
-
-export type WorkoutPreference =
-  | 'home'
-  | 'gym'
-  | 'outdoor'
-  | 'bodyweight'
-  | 'mixed';
-
-export interface UserProfile {
-  id?: string;
-  anonymous_user_id: string;
-  age: number;
-  sex: Sex;
-  height_cm: number;
-  weight_kg: number;
-  activity_level: ActivityLevel;
-  average_steps?: number;
-  workout_frequency?: number;
-  goal: Goal;
-  goal_pace?: GoalPace;
-  diet_preference: DietPreference;
-  cuisine_preference: CuisinePreference;
-  dietary_restrictions: AllergyRestriction[];
-  workout_preference: WorkoutPreference;
-  created_at?: string;
-  updated_at?: string;
-}
+export type HealthTargetsRow = Database['public']['Tables']['health_targets']['Row'];
+export type HealthTargetsInsert = Database['public']['Tables']['health_targets']['Insert'];
 
 export interface BMICalculation {
   bmi: number;
@@ -87,4 +41,6 @@ export interface HealthCalculations {
   waterTarget: number; // in ml
   waterTargetLitres: number;
   sleepTargetMinutes: number;
+  recommendedBedtime?: string;
+  recommendedWakeTime?: string;
 }

@@ -3,253 +3,259 @@
 import React, { useState } from 'react';
 import {
   Calendar,
-  ChevronDown,
-  ChevronUp,
   Flame,
+  Utensils,
+  Dumbbell,
+  Droplets,
+  Moon,
+  Printer,
+  Download,
   Beef,
   Wheat,
   Droplet,
-  Dumbbell,
-  Moon,
-  Clock,
-  Utensils,
-  Sparkles,
 } from 'lucide-react';
-import { WeeklyPlan, DayDietPlan } from '@/types/nutrition';
+import { UserProfile, HealthCalculations } from '@/types/health';
+import { WeeklyPlan } from '@/types/nutrition';
+import { generateWeeklyWorkouts } from '@/lib/nutrition/fitnessGenerator';
 
-interface WeeklyPlanViewProps {
-  plan: WeeklyPlan;
+interface Props {
+  profile: UserProfile | null;
+  metrics: HealthCalculations | null;
+  weeklyPlan: WeeklyPlan | null;
 }
 
-export function WeeklyPlanView({ plan }: WeeklyPlanViewProps) {
-  // Default Monday (or today's day) expanded
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({
-    [today]: true,
-    Monday: true,
-  });
+const DAY_SHORTS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const DAY_FULLS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  const toggleDay = (dayName: string) => {
-    setExpandedDays((prev) => ({ ...prev, [dayName]: !prev[dayName] }));
+export function WeeklyPlanView({ profile, metrics, weeklyPlan }: Props) {
+  const [selectedDay, setSelectedDay] = useState<string>('Monday');
+
+  const workouts = generateWeeklyWorkouts((profile?.activity_level as any) || 'moderately_active');
+  const days = weeklyPlan?.days || [];
+  const currentDayPlan = days.find((d) => d.dayName === selectedDay) || days[0];
+  const currentWorkout = workouts[selectedDay] || workouts['Monday'];
+
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') {
+      window.print();
+    }
   };
 
-  const expandAll = () => {
-    const all: Record<string, boolean> = {};
-    plan.days.forEach((d) => (all[d.dayName] = true));
-    setExpandedDays(all);
-  };
-
-  const collapseAll = () => {
-    setExpandedDays({});
+  const handleExportJSON = () => {
+    if (!weeklyPlan) return;
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(weeklyPlan, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `HealthFit_7Day_Plan_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Controls & Summary Banner */}
-      <div className="p-6 rounded-3xl bg-[#111928]/80 border border-white/10 backdrop-blur-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-emerald-400" />
-            7-Day Complete Health & Nutrition Rotation
-          </h2>
-          <p className="text-xs text-slate-400">
-            Daily meal variety designed to hit balanced macro distribution across the entire week.
+    <div className="space-y-5 sm:space-y-6 max-w-5xl mx-auto pb-12 print:p-0">
+      {/* Header & Export Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm print:hidden">
+        <div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 flex items-center gap-2.5">
+            <Calendar className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-600 shrink-0" />
+            <span>7-Day Personalized Meal &amp; Workout Plan</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Complete rotation from Monday through Sunday with exact portion measurements and daily targets.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <button
             type="button"
-            onClick={expandAll}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white"
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors cursor-pointer touch-manipulation min-h-[44px]"
           >
-            Expand All
+            <Printer className="w-4 h-4 text-slate-500" />
+            <span>Print</span>
           </button>
+
           <button
             type="button"
-            onClick={collapseAll}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white"
+            onClick={handleExportJSON}
+            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm transition-colors cursor-pointer touch-manipulation min-h-[44px]"
           >
-            Collapse All
+            <Download className="w-4 h-4" />
+            <span>Export JSON</span>
           </button>
         </div>
       </div>
 
-      {/* 7 Day Cards */}
-      <div className="space-y-4">
-        {plan.days.map((day) => {
-          const isExpanded = Boolean(expandedDays[day.dayName]);
-          const isToday = day.dayName === today;
-
+      {/* Day Selector Strip: MON | TUE | WED | THU | FRI | SAT | SUN */}
+      <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-2xl bg-white border border-slate-200/90 shadow-sm overflow-x-auto no-scrollbar print:hidden">
+        {DAY_FULLS.map((dayName, idx) => {
+          const isSelected = selectedDay === dayName;
           return (
-            <div
-              key={day.dayName}
-              className={`rounded-3xl border transition-all overflow-hidden ${
-                isToday
-                  ? 'bg-[#111928]/95 border-emerald-500/40 shadow-lg shadow-emerald-500/5'
-                  : 'bg-[#111928]/80 border-white/10'
+            <button
+              key={dayName}
+              type="button"
+              onClick={() => setSelectedDay(dayName)}
+              className={`flex-1 min-w-[55px] sm:min-w-[65px] py-2.5 sm:py-3 px-1.5 sm:px-2 rounded-xl text-center transition-all font-extrabold text-xs cursor-pointer touch-manipulation min-h-[48px] ${
+                isSelected
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              {/* Day Card Header */}
-              <button
-                type="button"
-                onClick={() => toggleDay(day.dayName)}
-                className="w-full p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left hover:bg-white/5 transition-colors select-none"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`h-10 w-10 rounded-2xl flex items-center justify-center font-bold text-sm ${
-                      isToday
-                        ? 'bg-emerald-400 text-slate-950 font-black'
-                        : 'bg-slate-800 text-slate-200 border border-white/5'
-                    }`}
-                  >
-                    {day.dayName.slice(0, 3)}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-white">{day.dayName}</span>
-                      {isToday && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-                          Today
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-400">
-                      {day.meals.length} Balanced Meals • {day.workoutPlan?.title || 'Active Movement'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Day Macro Pill summary */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold">
-                    <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                      <Flame className="h-3.5 w-3.5" />
-                      {day.totalCalories} kcal
-                    </span>
-                    <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/20">
-                      <Beef className="h-3.5 w-3.5" />
-                      {day.protein}g P
-                    </span>
-                    <span className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-                      <Wheat className="h-3.5 w-3.5" />
-                      {day.carbs}g C
-                    </span>
-                    <span className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                      <Droplet className="h-3.5 w-3.5" />
-                      {day.fat}g F
-                    </span>
-                  </div>
-
-                  <div className="p-2 rounded-xl bg-slate-800/80 text-slate-400">
-                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </div>
-                </div>
-              </button>
-
-              {/* Collapsible Content */}
-              {isExpanded && (
-                <div className="p-5 sm:p-6 pt-0 border-t border-white/5 space-y-6 animate-in fade-in duration-200">
-                  {/* Meals Section */}
-                  <div className="space-y-3 pt-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                      <Utensils className="h-3.5 w-3.5 text-emerald-400" />
-                      Daily Meals & Ingredients
-                    </h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {day.meals.map((meal) => (
-                        <div
-                          key={meal.mealName + meal.mealType}
-                          className="p-4 rounded-2xl bg-slate-900/60 border border-white/5 space-y-3"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                                {meal.mealType.replace('_', ' ')}
-                              </span>
-                              <div className="text-sm font-bold text-white mt-1">{meal.mealName}</div>
-                            </div>
-                            <span className="text-xs font-bold text-amber-300 shrink-0">
-                              {meal.totalCalories} kcal
-                            </span>
-                          </div>
-
-                          {/* Food items */}
-                          <div className="space-y-1.5 pt-1">
-                            {meal.foodItems.map((item, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center justify-between text-xs text-slate-300 py-0.5 border-b border-white/5 last:border-0"
-                              >
-                                <span className="truncate pr-2">{item.name}</span>
-                                <span className="font-semibold text-emerald-400 shrink-0">
-                                  {item.quantity} {item.unit}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Micro Macros */}
-                          <div className="flex items-center justify-between text-[11px] font-medium text-slate-400 pt-1">
-                            <span>Protein: <strong className="text-rose-300">{meal.protein}g</strong></span>
-                            <span>Carbs: <strong className="text-cyan-300">{meal.carbs}g</strong></span>
-                            <span>Fat: <strong className="text-emerald-300">{meal.fat}g</strong></span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Workout & Lifestyle Section */}
-                  {day.workoutPlan && (
-                    <div className="p-4 rounded-2xl bg-slate-900/80 border border-white/5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
-                            <Dumbbell className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-white">{day.workoutPlan.title}</div>
-                            <div className="text-xs text-slate-400">
-                              {day.workoutPlan.focus} • {day.workoutPlan.durationMinutes} mins • ~{day.workoutPlan.estimatedBurnCalories} kcal burn
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <Moon className="h-3.5 w-3.5 text-indigo-400" />
-                            {Math.round(day.sleepTargetMinutes / 60)}h Sleep
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Droplet className="h-3.5 w-3.5 text-sky-400" />
-                            {(day.waterTargetMl / 1000).toFixed(1)}L Water
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
-                        {day.workoutPlan.exercises.map((ex, idx) => (
-                          <div
-                            key={idx}
-                            className="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 text-xs space-y-0.5"
-                          >
-                            <div className="font-semibold text-slate-200 truncate">{ex.name}</div>
-                            <div className="text-emerald-400 text-[11px]">
-                              {ex.sets ? `${ex.sets} sets × ${ex.reps}` : ex.duration || 'Steady'}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+              <div>{DAY_SHORTS[idx]}</div>
+              <div className={`text-[9px] sm:text-[10px] font-normal mt-0.5 ${isSelected ? 'text-emerald-100' : 'text-slate-400'}`}>
+                {dayName.slice(0, 3)}
+              </div>
+            </button>
           );
         })}
+      </div>
+
+      {/* Selected Day Content */}
+      <div className="space-y-5 sm:space-y-6">
+        {/* Day Summary Cards: 2-col on mobile/tablet, 4-col on desktop */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 print:grid-cols-4">
+          <div className="p-3.5 sm:p-4 bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50 text-amber-600 shrink-0">
+              <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase truncate block">Calories</span>
+              <p className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+                {currentDayPlan?.totalCalories || metrics?.targetCalories || 2000} kcal
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3.5 sm:p-4 bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-teal-50 text-teal-700 shrink-0">
+              <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase truncate block">Workout</span>
+              <p className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                {currentWorkout?.durationMinutes || 35} mins ({currentWorkout?.level || 'Active'})
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3.5 sm:p-4 bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-cyan-50 text-cyan-700 shrink-0">
+              <Droplets className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase truncate block">Hydration</span>
+              <p className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+                {(currentDayPlan?.waterTargetMl || metrics?.waterTarget || 2500).toLocaleString()} ml
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3.5 sm:p-4 bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-indigo-50 text-indigo-700 shrink-0">
+              <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase truncate block">Sleep</span>
+              <p className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+                7h 30m Circadian
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 5 Daily Meals */}
+        <div className="space-y-3 sm:space-y-4">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Utensils className="h-5 w-5 text-emerald-600 shrink-0" />
+            <span>Meals for {selectedDay}</span>
+          </h2>
+
+          <div className="space-y-3">
+            {currentDayPlan?.meals?.map((meal, idx) => (
+              <div
+                key={idx}
+                className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-3"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      {meal.mealType.replace('_', ' ')}
+                    </span>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">{meal.mealName}</h3>
+                  </div>
+
+                  {/* Macros */}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold">
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
+                      <Flame className="w-3 h-3 text-amber-500" />
+                      {meal.totalCalories} kcal
+                    </span>
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <Beef className="w-3 h-3 text-emerald-600" />
+                      {meal.protein}g P
+                    </span>
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 text-cyan-700 border border-cyan-200">
+                      <Wheat className="w-3 h-3 text-cyan-600" />
+                      {meal.carbs}g C
+                    </span>
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                      <Droplet className="w-3 h-3 text-slate-500" />
+                      {meal.fat}g F
+                    </span>
+                  </div>
+                </div>
+
+                {/* Food items & exact portions */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-2">
+                  {meal.foodItems.map((item, i) => (
+                    <div
+                      key={i}
+                      className="p-2 sm:p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs"
+                    >
+                      <span className="text-slate-700 font-medium truncate pr-2">{item.name}</span>
+                      <span className="font-bold text-emerald-700 shrink-0 text-[11px] sm:text-xs">
+                        {item.quantity} {item.unit}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Workout section for this day */}
+        {currentWorkout && (
+          <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-teal-50 text-teal-700 shrink-0">
+                  <Dumbbell className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                    {selectedDay} Workout: {currentWorkout.title}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {currentWorkout.focus} • {currentWorkout.durationMinutes} mins • ~{currentWorkout.estimatedBurnCalories} kcal
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+              {currentWorkout.exercises.map((ex, i) => (
+                <div key={i} className="p-2.5 sm:p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex justify-between items-center gap-2">
+                  <span className="font-bold text-slate-800 truncate">{ex.name}</span>
+                  <span className="text-slate-500 font-medium shrink-0">
+                    {ex.sets ? `${ex.sets} sets × ` : ''}{ex.reps || ex.duration || ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

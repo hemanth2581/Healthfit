@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
-import { isValidUUID } from '@/lib/anonymousUser';
-import { getTodayDateString } from '@/lib/utils';
+import { isValidUUID } from '@/lib/storage/anonymousUser';
+import { getTodayDateString } from '@/lib/utils/dates';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
+  const userId = searchParams.get('userId') || searchParams.get('user_id');
   const date = searchParams.get('date') || getTodayDateString();
 
   if (!userId || !isValidUUID(userId)) {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('daily_progress')
       .select('*')
-      .eq('anonymous_user_id', userId)
+      .eq('user_id', userId)
       .eq('progress_date', date)
       .maybeSingle();
 
@@ -30,18 +30,20 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ progress: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error fetching progress';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { anonymous_user_id, ...progressData } = body;
+    const { userId, user_id, anonymous_user_id, ...progressData } = body;
+    const targetUserId = userId || user_id || anonymous_user_id;
 
-    if (!anonymous_user_id || !isValidUUID(anonymous_user_id)) {
-      return NextResponse.json({ error: 'Valid anonymous_user_id is required' }, { status: 400 });
+    if (!targetUserId || !isValidUUID(targetUserId)) {
+      return NextResponse.json({ error: 'Valid user ID is required' }, { status: 400 });
     }
 
     const supabase = getServerSupabase();
@@ -51,36 +53,22 @@ export async function POST(request: NextRequest) {
 
     const progress_date = progressData.progress_date || getTodayDateString();
 
-    // Calculate score
-    let score = 0;
-    if (progressData.breakfast_completed) score += 1;
-    if (progressData.morning_snack_completed) score += 1;
-    if (progressData.lunch_completed) score += 1;
-    if (progressData.evening_snack_completed) score += 1;
-    if (progressData.dinner_completed) score += 1;
-    if (progressData.workout_completed) score += 1;
-    if ((progressData.water_completed_ml || 0) >= 2000) score += 1;
-
-    const completion_percentage = Math.round((score / 7) * 100);
-
     const payload = {
-      anonymous_user_id,
+      user_id: targetUserId,
       progress_date,
-      breakfast_completed: Boolean(progressData.breakfast_completed),
-      morning_snack_completed: Boolean(progressData.morning_snack_completed),
-      lunch_completed: Boolean(progressData.lunch_completed),
-      evening_snack_completed: Boolean(progressData.evening_snack_completed),
-      dinner_completed: Boolean(progressData.dinner_completed),
-      workout_completed: Boolean(progressData.workout_completed),
-      water_completed_ml: Number(progressData.water_completed_ml) || 0,
-      sleep_completed_minutes: Number(progressData.sleep_completed_minutes) || 0,
-      completion_percentage,
+      total_tasks: Number(progressData.total_tasks) || 8,
+      completed_tasks: Number(progressData.completed_tasks) || 0,
+      points_earned: Number(progressData.points_earned) || 0,
+      water_intake: Number(progressData.water_intake) || 0,
+      water_target: Number(progressData.water_target) || 2500,
+      day_completed: Boolean(progressData.day_completed),
+      completed_at: progressData.day_completed ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await (supabase
-      .from('daily_progress') as any)
-      .upsert(payload, { onConflict: 'anonymous_user_id,progress_date' })
+    const { data, error } = await supabase
+      .from('daily_progress')
+      .upsert(payload as any, { onConflict: 'user_id,progress_date' })
       .select()
       .single();
 
@@ -89,7 +77,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, progress: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error updating progress' }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error updating progress';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

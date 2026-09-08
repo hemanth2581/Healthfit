@@ -767,6 +767,11 @@ export function getFilteredFoods(
       }
     }
 
+    // Check cuisine preference if provided
+    if (cuisine && food.cuisines.length > 0 && !food.cuisines.includes(cuisine) && !food.cuisines.includes('mixed')) {
+      return false;
+    }
+
     return true;
   });
 }

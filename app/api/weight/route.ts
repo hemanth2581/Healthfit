@@ -1,75 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
-import { isValidUUID } from '@/lib/anonymousUser';
-import { weightLogSchema } from '@/lib/validation';
-
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
-
-  if (!userId || !isValidUUID(userId)) {
-    return NextResponse.json({ error: 'Valid userId required' }, { status: 400 });
-  }
-
-  const supabase = getServerSupabase();
-  if (!supabase) {
-    return NextResponse.json({ logs: [] }, { status: 200 });
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('weight_logs')
-      .select('*')
-      .eq('anonymous_user_id', userId)
-      .order('logged_at', { ascending: false })
-      .limit(30);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ logs: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}
+import { isValidUUID } from '@/lib/storage/anonymousUser';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { anonymous_user_id, weight_kg, notes } = body;
+    const { userId, user_id, anonymous_user_id, weight_kg, date } = body;
+    const targetUserId = userId || user_id || anonymous_user_id;
 
-    if (!anonymous_user_id || !isValidUUID(anonymous_user_id)) {
-      return NextResponse.json({ error: 'Valid anonymous_user_id required' }, { status: 400 });
+    if (!targetUserId || !isValidUUID(targetUserId)) {
+      return NextResponse.json({ error: 'Valid user ID is required' }, { status: 400 });
     }
 
-    const validated = weightLogSchema.safeParse({ weight_kg: Number(weight_kg), notes });
-    if (!validated.success) {
-      return NextResponse.json({ error: 'Validation failed', details: validated.error.format() }, { status: 422 });
+    if (!weight_kg || typeof weight_kg !== 'number' || weight_kg <= 20 || weight_kg >= 400) {
+      return NextResponse.json({ error: 'Valid weight between 20kg and 400kg is required' }, { status: 400 });
     }
 
+    const logDate = date || new Date().toISOString().split('T')[0];
     const supabase = getServerSupabase();
-    if (!supabase) {
-      return NextResponse.json({ success: true, message: 'Saved locally' }, { status: 200 });
+
+    if (supabase) {
+      // 1. Insert into weight_logs table
+      await (supabase as any).from('weight_logs').insert([
+        {
+          user_id: targetUserId,
+          weight_kg,
+          logged_date: logDate,
+          created_at: new Date().toISOString(),
+        } as any,
+      ]);
+
+      // 2. Update current profile weight
+      await supabase
+        .from('profiles')
+        .update({
+          weight: weight_kg,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('user_id', targetUserId);
+
+      return NextResponse.json({ success: true, weight_kg, message: 'Weight logged successfully' });
     }
 
-    const { data, error } = await (supabase
-      .from('weight_logs') as any)
-      .insert({
-        anonymous_user_id,
-        weight_kg: validated.data.weight_kg,
-        notes: validated.data.notes || null,
-        logged_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, log: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error logging weight' }, { status: 500 });
+    return NextResponse.json({ success: true, weight_kg, message: 'Weight logged locally' });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error recording weight';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
