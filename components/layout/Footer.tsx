@@ -41,7 +41,7 @@ export function Footer() {
         </div>
 
         <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2 text-center sm:text-left">
-          <p>© {new Date().getFullYear()} HealthFit. Stored securely in your browser &amp; Supabase.</p>
+          <p suppressHydrationWarning>© {new Date().getFullYear()} HealthFit. Stored securely in your browser &amp; Supabase.</p>
           <p className="flex items-center justify-center gap-1 text-slate-500">
             <Shield className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
             <span>Anonymous &amp; Privacy-First Architecture</span>

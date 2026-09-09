@@ -7,7 +7,7 @@ import { getWeeklyPlan, saveWeeklyPlan as dbSaveWeeklyPlan } from '../supabase/d
 import { getClientUserId } from '../storage/anonymousUser';
 
 export function usePlan() {
-  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(() => localStore.getWeeklyPlan());
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(null);
 
   const refreshPlan = useCallback(() => {
     setWeeklyPlan(localStore.getWeeklyPlan());

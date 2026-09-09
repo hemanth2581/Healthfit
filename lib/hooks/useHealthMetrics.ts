@@ -7,7 +7,7 @@ import { getHealthMetrics, saveHealthMetrics as dbSaveHealthMetrics } from '../s
 import { getClientUserId } from '../storage/anonymousUser';
 
 export function useHealthMetrics() {
-  const [metrics, setMetrics] = useState<HealthCalculations | null>(() => localStore.getMetrics());
+  const [metrics, setMetrics] = useState<HealthCalculations | null>(null);
 
   const refreshMetrics = useCallback(() => {
     setMetrics(localStore.getMetrics());

@@ -1,13 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Sparkles, User } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 
 export function Navbar() {
   const profile = useProfile();
-  const hasProfile = Boolean(profile);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const hasProfile = mounted && Boolean(profile);
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-md shadow-2xs">

@@ -7,7 +7,7 @@ import { saveWaterLog as dbSaveWaterLog } from '../supabase/database';
 import { getClientUserId } from '../storage/anonymousUser';
 
 export function useWater() {
-  const [logs, setLogs] = useState<WaterLog[]>(() => localStore.getWaterLogs());
+  const [logs, setLogs] = useState<WaterLog[]>([]);
 
   const refreshWaterLogs = useCallback(() => {
     setLogs(localStore.getWaterLogs());

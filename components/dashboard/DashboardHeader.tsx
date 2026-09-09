@@ -31,10 +31,10 @@ export function DashboardHeader({ streak, streakCount = 0, points = 0, userName 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-1">
       <div>
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+        <h1 suppressHydrationWarning className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
           {getGreeting()} {userName ? <span className="text-emerald-700 font-bold">{userName}</span> : ''}
         </h1>
-        <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5">
+        <p suppressHydrationWarning className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5">
           Here&apos;s your daily targets • {getFormattedDate()}
         </p>
       </div>

@@ -7,7 +7,7 @@ import { saveSleepLog as dbSaveSleepLog } from '../supabase/database';
 import { getClientUserId } from '../storage/anonymousUser';
 
 export function useSleep() {
-  const [logs, setLogs] = useState<SleepLog[]>(() => localStore.getSleepLogs());
+  const [logs, setLogs] = useState<SleepLog[]>([]);
 
   const refreshSleepLogs = useCallback(() => {
     setLogs(localStore.getSleepLogs());

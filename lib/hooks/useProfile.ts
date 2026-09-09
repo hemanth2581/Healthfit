@@ -7,7 +7,7 @@ import { getProfile, saveProfile as dbSaveProfile } from '../supabase/database';
 import { getClientUserId } from '../storage/anonymousUser';
 
 export function useProfile(): UserProfile | null {
-  const [profile, setProfile] = useState<UserProfile | null>(() => localStore.getProfile());
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const refreshProfile = useCallback(() => {
     const current = localStore.getProfile();
