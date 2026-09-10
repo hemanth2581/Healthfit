@@ -340,7 +340,7 @@ export default function AICoachPage() {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               rows={2}
-              placeholder="Ask about your diet plan, food substitutions, macro targets, or workouts..."
+              placeholder="Ask anything — diet plans, food swaps, workouts, coding, science, or general questions..."
               disabled={isLoading}
               className="w-full pl-4 pr-14 py-3 rounded-2xl bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 text-sm text-slate-900 placeholder:text-slate-400 resize-none outline-none disabled:opacity-50 transition-all"
             />

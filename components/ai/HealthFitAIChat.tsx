@@ -483,7 +483,7 @@ export function HealthFitAIChat() {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={1}
-                placeholder="Ask about meals, recipes, swaps, or workouts..."
+                placeholder="Ask anything — health, diet, workouts, coding, science..."
                 disabled={isLoading}
                 className="w-full pl-3.5 pr-11 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 text-xs text-slate-900 placeholder:text-slate-400 resize-none outline-none disabled:opacity-50 transition-all max-h-24 overflow-y-auto"
               />

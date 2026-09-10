@@ -4,26 +4,26 @@ import { generateGroqChatResponse, ChatHistoryMessage } from '@/lib/ai/groq';
 import { HealthFitChatContext } from '@/lib/ai/context';
 
 const chatRequestSchema = z.object({
-  message: z.string().trim().min(1, 'Message cannot be empty').max(2000, 'Message is too long (max 2000 characters)').optional(),
-  prompt: z.string().trim().min(1).max(2000).optional(),
+  message: z.string().trim().min(1, 'Message cannot be empty').max(50000, 'Message is too long').optional(),
+  prompt: z.string().trim().min(1).max(50000).optional(),
   context: z.custom<HealthFitChatContext>().optional(),
   messages: z
     .array(
       z.object({
         role: z.enum(['user', 'assistant', 'system']),
-        content: z.string().max(4000),
+        content: z.string().max(100000),
       })
     )
-    .max(20, 'History cannot exceed 20 messages')
+    .max(100)
     .optional(),
   history: z
     .array(
       z.object({
         role: z.enum(['user', 'assistant', 'system']),
-        content: z.string().max(4000),
+        content: z.string().max(100000),
       })
     )
-    .max(20, 'History cannot exceed 20 messages')
+    .max(100)
     .optional(),
   model: z.string().optional(),
 });
