@@ -359,7 +359,7 @@ export default function AICoachPage() {
             <span>Press Enter to send, Shift+Enter for newline</span>
             <span className="flex items-center gap-1 text-emerald-800 font-bold">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-              Groq LLaMA 3.3 + Local Safety Guardrails
+              Groq AI + Local Safety Guardrails
             </span>
           </div>
         </div>

@@ -412,7 +412,7 @@ export function HealthFitAIChat() {
                   ) : (
                     <div className="pt-1 text-[11px] text-emerald-800 font-medium flex items-center gap-1">
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                      Groq LLaMA 3.3 Intelligence ready for any prompt.
+                      Groq AI Intelligence ready for any prompt.
                     </div>
                   )}
                 </div>
@@ -502,7 +502,7 @@ export function HealthFitAIChat() {
               <span>Enter to send • Shift+Enter for new line</span>
               <span className="flex items-center gap-1 text-[9px] text-emerald-800 font-semibold">
                 <ShieldCheck className="h-3 w-3 text-emerald-600" />
-                Groq LLaMA 3.3 Active
+                Groq AI Active
               </span>
             </div>
           </div>
