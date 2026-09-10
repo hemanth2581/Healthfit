@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sparkles, User, AlertCircle, Copy, Check, RotateCw } from 'lucide-react';
+import { Sparkles, User, AlertCircle, Copy, Check, RotateCw, Printer, Download } from 'lucide-react';
 
 export interface MessageItem {
   id: string;
@@ -75,10 +75,19 @@ function renderInlineMarkdown(str: string): React.ReactNode {
     // Markdown link: [Title](URL)
     const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (linkMatch) {
+      const href = linkMatch[2];
+      // Don't render broken raw base64 data URIs as links
+      if (href.startsWith('data:application/pdf;base64')) {
+        return (
+          <span key={i} className="font-semibold text-emerald-800">
+            📄 {linkMatch[1]} (Use &ldquo;Save as PDF&rdquo; button below)
+          </span>
+        );
+      }
       return (
         <a
           key={i}
-          href={linkMatch[2]}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
           className="text-teal-700 underline underline-offset-2 hover:text-teal-900 font-medium transition-colors"
@@ -120,7 +129,9 @@ function renderInlineMarkdown(str: string): React.ReactNode {
 }
 
 function FormattedTextLines({ text }: { text: string }) {
-  const lines = text.split('\n');
+  // Strip raw base64 garbage if present in output
+  const cleanedText = text.replace(/JVBERi0x[A-Za-z0-9+/=\s]{50,}/g, '[Plan data ready to export/print]');
+  const lines = cleanedText.split('\n');
 
   return (
     <div className="space-y-1.5 text-xs leading-relaxed">
@@ -129,6 +140,27 @@ function FormattedTextLines({ text }: { text: string }) {
 
         if (!trimmed) {
           return <div key={idx} className="h-1" />;
+        }
+
+        // Table row (e.g. "| Day | Meal | ... |")
+        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+          const cells = trimmed
+            .split('|')
+            .slice(1, -1)
+            .map((c) => c.trim());
+          const isSeparator = cells.every((c) => /^[-:\s]+$/.test(c));
+          if (isSeparator) {
+            return null;
+          }
+          return (
+            <div key={idx} className="grid grid-flow-col auto-cols-fr gap-2 py-1 px-2 rounded-lg bg-slate-100/70 border border-slate-200/60 font-medium text-[11px]">
+              {cells.map((cell, cIdx) => (
+                <div key={cIdx} className="truncate">
+                  {renderInlineMarkdown(cell)}
+                </div>
+              ))}
+            </div>
+          );
         }
 
         // Bullet line
@@ -226,6 +258,51 @@ export function ChatMessage({
     }
   };
 
+  const handlePrintOrPdf = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>HealthFit - AI Plan Export</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #0f172a; padding: 40px; max-width: 800px; margin: auto; }
+            h1, h2, h3 { color: #065f46; }
+            pre { background: #f1f5f9; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; }
+            table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+            th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+            th { background: #f8fafc; font-weight: bold; }
+            hr { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+            .badge { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="badge">HealthFit AI Generated Export • ${new Date().toLocaleDateString()}</div>
+          <div style="white-space: pre-wrap;">${message.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const handleDownloadText = () => {
+    const blob = new Blob([message.content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `HealthFit-AI-Plan-${Date.now()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div
       className={`flex items-start gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200 group ${
@@ -263,10 +340,10 @@ export function ChatMessage({
       >
         <FormattedContent text={message.content} />
 
-        {/* Action Toolbar (Copy & Regenerate for assistant) */}
+        {/* Action Toolbar */}
         {!isUser && !message.isError && (
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
-            <div className="flex items-center gap-2">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500">
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
                 type="button"
                 onClick={handleCopyMessage}
@@ -284,6 +361,28 @@ export function ChatMessage({
                     <span>Copy</span>
                   </>
                 )}
+              </button>
+
+              {/* Save as PDF / Print Button */}
+              <button
+                type="button"
+                onClick={handlePrintOrPdf}
+                className="flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-semibold transition-colors cursor-pointer"
+                title="Print or Save as PDF"
+              >
+                <Printer className="h-3 w-3 text-emerald-600" />
+                <span>Save as PDF</span>
+              </button>
+
+              {/* Download Markdown/Text */}
+              <button
+                type="button"
+                onClick={handleDownloadText}
+                className="flex items-center gap-1 hover:text-slate-900 transition-colors cursor-pointer"
+                title="Download plan as Markdown/Text"
+              >
+                <Download className="h-3 w-3" />
+                <span>Download .md</span>
               </button>
 
               {isLast && onRegenerate && (
