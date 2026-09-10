@@ -2,6 +2,44 @@
 
 @layer base {
   :root {
+    /* 1. Design System Typography Tokens */
+    --font-family-primary: var(--font-inter, "Inter"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    
+    /* Font Weight Tokens */
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* Responsive Fluid Typography Scale via clamp() */
+    --font-size-display: clamp(2rem, 5vw, 3.75rem);   /* 32px -> 60px (Hero / Display) */
+    --font-size-h1: clamp(1.75rem, 4vw, 2.75rem);       /* 28px -> 44px (Page Titles) */
+    --font-size-h2: clamp(1.375rem, 3vw, 2rem);         /* 22px -> 32px (Section Titles) */
+    --font-size-h3: clamp(1.125rem, 2vw, 1.5rem);       /* 18px -> 24px (Card / Subsection) */
+    --font-size-h4: clamp(1rem, 1.5vw, 1.25rem);        /* 16px -> 20px (Minor Heading) */
+    --font-size-body-lg: 1.125rem;                      /* 18px (Lead paragraphs) */
+    --font-size-body: 1rem;                             /* 16px (Standard Body) */
+    --font-size-sm: 0.875rem;                           /* 14px (Secondary / Meta / Labels) */
+    --font-size-xs: 0.75rem;                            /* 12px (Badges / Tags / Indicators) */
+
+    /* Line Height Tokens */
+    --line-height-display: 1.1;
+    --line-height-heading: 1.2;
+    --line-height-subheading: 1.3;
+    --line-height-body: 1.6;
+    --line-height-relaxed: 1.7;
+    --line-height-tight: 1.25;
+
+    /* Letter Spacing Tokens */
+    --letter-spacing-display: -0.025em;
+    --letter-spacing-heading: -0.02em;
+    --letter-spacing-normal: 0em;
+    --letter-spacing-caps: 0.04em;
+
+    /* Text Measure / Line Length Limit */
+    --max-text-ch: 65ch;
+
+    /* Color Tokens */
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
@@ -31,28 +69,181 @@
   }
 
   html {
+    font-family: var(--font-family-primary);
     overflow-x: clip;
     -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     scroll-behavior: smooth;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  body {
+    font-family: var(--font-family-primary);
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    font-weight: var(--font-weight-regular);
+    color: #0f172a;
+    background-color: #f8fafc;
+    overflow-wrap: break-word;
+    word-break: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Standard Heading Scales with Fluid Responsive Behavior */
+  h1 {
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-heading);
+    letter-spacing: var(--letter-spacing-heading);
+    color: #0f172a;
+  }
+
+  h2 {
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-heading);
+    letter-spacing: var(--letter-spacing-heading);
+    color: #0f172a;
+  }
+
+  h3 {
+    font-size: var(--font-size-h3);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-subheading);
+    letter-spacing: var(--letter-spacing-normal);
+    color: #1e293b;
+  }
+
+  h4 {
+    font-size: var(--font-size-h4);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-subheading);
+    color: #1e293b;
+  }
+
+  p {
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    color: #334155;
+  }
+
+  small {
+    font-size: var(--font-size-sm);
+    line-height: 1.45;
+    color: #64748b;
+  }
+
+  /* Form Elements: Default to 16px to prevent unwanted iOS Safari Auto-Zoom */
+  input, textarea, select {
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.25;
+  }
+
+  /* Tabular numbers for aligned metric values in tables/dashboards */
+  .tabular-nums, [data-tabular-nums] {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-body {
-  background-color: #f4f7f4;
-  background-image: 
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.5)),
-    url('/images/fitness-bg.jpg');
-  background-size: cover;
-  background-position: center top;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  color: #0f172a;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  min-height: 100vh;
-  overflow-x: clip;
-  width: 100%;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* =======================================================
+   RESPONSIVE DESIGN SYSTEM TYPOGRAPHY UTILITIES
+   ======================================================= */
+
+.text-display {
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-display);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+.text-h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-heading);
+  letter-spacing: var(--letter-spacing-heading);
+}
+
+.text-h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-heading);
+  letter-spacing: var(--letter-spacing-heading);
+}
+
+.text-h3 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-subheading);
+}
+
+.text-h4 {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-subheading);
+}
+
+.text-body-lg {
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-relaxed);
+  font-weight: var(--font-weight-regular);
+}
+
+.text-body {
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-regular);
+}
+
+.text-small {
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  font-weight: var(--font-weight-regular);
+}
+
+.text-small-medium {
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  font-weight: var(--font-weight-medium);
+}
+
+.text-badge {
+  font-size: var(--font-size-xs);
+  line-height: 1.25;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+}
+
+/* Metric / Stat Displays */
+.text-stat-lg {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.text-stat-md {
+  font-size: clamp(1.375rem, 2.5vw, 1.875rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Maximum Line Length / Prose Container for Optimal Reading Comfort */
+.prose-readable {
+  max-width: var(--max-text-ch);
+  line-height: var(--line-height-relaxed);
 }
 
 /* Safe Area Inset Utility Classes for iPhone notch / Dynamic Island */

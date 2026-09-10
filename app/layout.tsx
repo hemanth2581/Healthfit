@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { Footer } from '@/components/layout/Footer';
 import { HealthFitAIChat } from '@/components/ai/HealthFitAIChat';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+  weight: ['400', '500', '600', '700'],
+});
 
 export const metadata: Metadata = {
   title: 'HealthFit — Personal Health, Diet, Workout & AI Coach Platform',
@@ -36,8 +44,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="light scroll-smooth">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white flex flex-col justify-between pb-24 lg:pb-0">
+    <html lang="en" className={`light scroll-smooth ${inter.variable}`}>
+      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white flex flex-col justify-between pb-24 lg:pb-0`}>
         <div className="flex min-h-screen w-full">
           {/* Desktop Navigation Sidebar */}
           <Sidebar />
