@@ -10,10 +10,8 @@ export default function DietPage() {
   const weeklyPlan = useWeeklyPlan();
 
   return (
-    <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto">
-        <DietOverview profile={profile} metrics={metrics} weeklyPlan={weeklyPlan} />
-      </div>
+    <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+      <DietOverview profile={profile} metrics={metrics} weeklyPlan={weeklyPlan} />
     </div>
   );
 }

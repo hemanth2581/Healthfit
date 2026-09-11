@@ -3,7 +3,7 @@
 @layer base {
   :root {
     /* =======================================================
-       1. CENTRALIZED DESIGN SYSTEM TYPOGRAPHY TOKENS
+       1. CENTRALIZED TYPOGRAPHY TOKENS (INTER PRIMARY)
        ======================================================= */
     --font-family-primary: var(--font-inter, "Inter"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     
@@ -23,12 +23,12 @@
     --font-size-3xl: 1.875rem;     /* 30px - H2 section titles */
     --font-size-4xl: 2.25rem;      /* 36px - H1 page titles */
 
-    /* Fluid Responsive Scale via clamp() */
-    --font-size-display: clamp(2rem, 5vw, 4rem);         /* 32px -> 64px (Display / Hero) */
-    --font-size-h1: clamp(1.75rem, 4vw, 3rem);            /* 28px -> 48px (Main H1 Page Headings) */
-    --font-size-h2: clamp(1.5rem, 3vw, 2.25rem);          /* 24px -> 36px (Section H2 Headings) */
-    --font-size-h3: clamp(1.25rem, 2vw, 1.75rem);         /* 20px -> 28px (H3 Headings) */
-    --font-size-h4: clamp(1.125rem, 1.5vw, 1.375rem);     /* 18px -> 22px (H4 Card / Sub-sections) */
+    /* Fluid Responsive Typography Scale via clamp() */
+    --font-size-display: clamp(2rem, 5vw, 3.75rem);       /* 32px -> 60px (Hero / Display) */
+    --font-size-h1: clamp(1.75rem, 4vw, 2.75rem);          /* 28px -> 44px (Main H1 Page Headings) */
+    --font-size-h2: clamp(1.375rem, 3vw, 2rem);            /* 22px -> 32px (Section H2 Headings) */
+    --font-size-h3: clamp(1.125rem, 2vw, 1.5rem);          /* 18px -> 24px (H3 Headings) */
+    --font-size-h4: clamp(1rem, 1.5vw, 1.25rem);           /* 16px -> 20px (H4 Card / Sub-sections) */
     
     /* Line Height Tokens */
     --line-height-tight: 1.15;
@@ -48,27 +48,52 @@
     /* Text Measure / Line Length Container Limit */
     --max-text-ch: 65ch;
 
-    /* Theme Color Tokens */
+    /* =======================================================
+       2. COLOR PALETTE & SURFACE TOKENS
+       ======================================================= */
     --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --surface: 0 0% 100%;
+    --surface-muted: 210 40% 96.5%;
+    --surface-card: 0 0% 100%;
+    
+    --text-primary: 222 47% 11%;
+    --text-secondary: 215.4 16.3% 36.9%;
+    --text-muted: 215.4 16.3% 56.9%;
+    
+    --border: 214.3 31.8% 90%;
+    --border-subtle: 214.3 31.8% 94%;
+
     --primary: 158 75% 40%;
+    --primary-hover: 158 80% 34%;
     --primary-foreground: 0 0% 100%;
+
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+
     --accent: 187 85% 43%;
     --accent-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 158 75% 40%;
-    --radius: 0.75rem;
+
+    /* =======================================================
+       3. BORDER RADIUS TOKENS
+       ======================================================= */
+    --radius-xs: 4px;
+    --radius-sm: 8px;     /* Small components, badges */
+    --radius-md: 10px;    /* Inputs, standard buttons */
+    --radius-lg: 14px;    /* Cards, dropdowns */
+    --radius-xl: 18px;    /* Large containers, modals */
+    --radius-2xl: 24px;   /* Hero previews, bottom sheets */
+
+    /* =======================================================
+       4. ELEVATION & SHADOW SCALE
+       ======================================================= */
+    --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02);
+    --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.02);
+    --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.07), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
+    --shadow-xl: 0 20px 30px -6px rgba(15, 23, 42, 0.08), 0 8px 12px -4px rgba(15, 23, 42, 0.03);
 
     /* Safe Area Insets (for mobile notches & dynamic island) */
     --sat: env(safe-area-inset-top, 0px);
@@ -100,9 +125,7 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* =======================================================
-     HTML5 HEADING SCALE & ELEMENTS WITH CONTROLLED HIERARCHY
-     ======================================================= */
+  /* HTML5 Headings */
   h1 {
     font-size: var(--font-size-h1);
     font-weight: var(--font-weight-bold);
@@ -187,9 +210,10 @@
 }
 
 /* =======================================================
-   RESPONSIVE DESIGN SYSTEM TYPOGRAPHY UTILITIES
+   RESPONSIVE DESIGN SYSTEM UTILITIES & SURFACES
    ======================================================= */
 
+/* Typography helper classes */
 .text-display {
   font-size: var(--font-size-display);
   font-weight: var(--font-weight-bold);
@@ -277,62 +301,122 @@
   line-height: 1.3;
 }
 
-/* Maximum Line Length / Prose Container for Optimal Reading Comfort */
+/* Reading container max line length */
 .prose-readable {
   max-width: var(--max-text-ch);
   line-height: var(--line-height-loose);
 }
 
-/* Safe Area Inset Utility Classes for iPhone notch / Dynamic Island */
-.safe-area-pt {
-  padding-top: max(env(safe-area-inset-top, 0px), 0px);
+/* Layered Surfaces */
+.card-surface {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
 }
 
-.safe-area-pb {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+.card-surface-interactive {
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.safe-area-pl {
-  padding-left: max(env(safe-area-inset-left, 0px), 0px);
+.card-surface-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(203, 213, 225, 0.9);
 }
 
-.safe-area-pr {
-  padding-right: max(env(safe-area-inset-right, 0px), 0px);
-}
-
-.safe-bottom-offset {
-  bottom: max(env(safe-area-inset-bottom, 0px), 0px);
-}
-
-/* Glassmorphism & Clean Card Surfaces */
 .glass-panel {
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
 }
 
-.glass-card-interactive {
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+/* Reusable UI Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  min-height: 44px;
+  background-color: #059669;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px -1px rgba(5, 150, 105, 0.25);
+  transition: all 0.15s ease-out;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
-.glass-card-interactive:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+.btn-primary:hover {
+  background-color: #047857;
+  box-shadow: 0 4px 12px -1px rgba(5, 150, 105, 0.35);
 }
 
-.gradient-text {
-  background: linear-gradient(135deg, #059669 0%, #0284c7 50%, #6366f1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
-/* Responsive Touch-friendly Tap Targets */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  min-height: 44px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease-out;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* Skeleton Loading Pulses */
+.skeleton-pulse {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Touch-friendly Tap Targets */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
@@ -341,7 +425,21 @@
   justify-content: center;
 }
 
-/* Hide scrollbar for clean horizontal tabs */
+/* Safe Area Inset Classes */
+.safe-area-pt {
+  padding-top: max(env(safe-area-inset-top, 0px), 0px);
+}
+.safe-area-pb {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+}
+.safe-area-pl {
+  padding-left: max(env(safe-area-inset-left, 0px), 0px);
+}
+.safe-area-pr {
+  padding-right: max(env(safe-area-inset-right, 0px), 0px);
+}
+
+/* Scrollbar styling */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -350,7 +448,6 @@
   scrollbar-width: none;
 }
 
-/* Custom modern light scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

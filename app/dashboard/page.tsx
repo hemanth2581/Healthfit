@@ -292,9 +292,8 @@ export default function DashboardPage() {
   const breakdown = calculateBreakdown();
 
   return (
-    <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
-        {/* Toast Notification */}
+    <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+      {/* Toast Notification */}
         {toastMessage && (
           <div className="fixed top-20 right-4 z-50 rounded-2xl bg-white border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-900 shadow-xl flex items-center gap-2 animate-in slide-in-from-top-4">
             <Sparkles className="h-4 w-4 text-emerald-600 shrink-0" />
@@ -490,6 +489,5 @@ export default function DashboardPage() {
           onContinue={() => setShowCompletionModal(false)}
         />
       </div>
-    </div>
   );
 }

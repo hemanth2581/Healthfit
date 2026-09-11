@@ -17,23 +17,21 @@ export default function ProgressPage() {
 
   if (!profile || !metrics) {
     return (
-      <div className="min-h-screen bg-slate-50/50 py-16 px-4 flex items-center justify-center">
-        <div className="max-w-md w-full p-8 bg-white border border-slate-200 rounded-3xl text-center space-y-4 shadow-sm">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
-            <TrendingUp className="w-7 h-7" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-900">Set Up Your Profile</h2>
-          <p className="text-sm text-slate-500">
-            Please complete your onboarding profile to begin logging weight and viewing health analytics.
-          </p>
-          <Link
-            href="/onboarding"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition-all"
-          >
-            <span>Start Onboarding</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+      <div className="w-full max-w-md mx-auto my-16 p-8 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl text-center space-y-4 shadow-sm">
+        <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-xs">
+          <TrendingUp className="w-7 h-7" />
         </div>
+        <h2 className="text-xl font-bold text-slate-900">Set Up Your Profile</h2>
+        <p className="text-sm text-slate-500">
+          Please complete your onboarding profile to begin logging weight and viewing health analytics.
+        </p>
+        <Link
+          href="/onboarding"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-sm rounded-xl transition-all cursor-pointer"
+        >
+          <span>Start Onboarding</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
     );
   }
@@ -76,7 +74,7 @@ export default function ProgressPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6">
+    <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       <ProgressAnalyticsView
         profile={profile}
         metrics={metrics}

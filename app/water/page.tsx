@@ -14,23 +14,21 @@ export default function WaterPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-slate-50/50 py-16 px-4 flex items-center justify-center">
-        <div className="max-w-md w-full p-8 bg-white border border-slate-200 rounded-3xl text-center space-y-4 shadow-sm">
-          <div className="w-14 h-14 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center mx-auto">
-            <Droplets className="w-7 h-7" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-900">Set Up Your Profile</h2>
-          <p className="text-sm text-slate-500">
-            Please complete your onboarding profile to calculate your exact daily water requirement and schedule.
-          </p>
-          <Link
-            href="/onboarding"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition-all"
-          >
-            <span>Start Onboarding</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+      <div className="w-full max-w-md mx-auto my-16 p-8 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl text-center space-y-4 shadow-sm">
+        <div className="w-14 h-14 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center mx-auto shadow-xs">
+          <Droplets className="w-7 h-7" />
         </div>
+        <h2 className="text-xl font-bold text-slate-900">Set Up Your Profile</h2>
+        <p className="text-sm text-slate-500">
+          Please complete your onboarding profile to calculate your exact daily water requirement and schedule.
+        </p>
+        <Link
+          href="/onboarding"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-sm rounded-xl transition-all cursor-pointer"
+        >
+          <span>Start Onboarding</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
     );
   }
@@ -49,7 +47,7 @@ export default function WaterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6">
+    <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       <HydrationScheduleView
         weightKg={profile.weight_kg || profile.weight || 70}
         activityLevel={(profile.activity_level as any) || 'moderately_active'}
