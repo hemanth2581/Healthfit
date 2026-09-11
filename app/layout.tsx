@@ -45,8 +45,24 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`light scroll-smooth ${inter.variable}`}>
-      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white flex flex-col justify-between pb-24 lg:pb-0`}>
-        <div className="flex min-h-screen w-full">
+      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white flex flex-col justify-between pb-24 lg:pb-0 relative`}>
+        {/* Modern Ambient Health & Fitness Background Image & Lighting */}
+        <div 
+          aria-hidden="true"
+          className="fixed inset-0 pointer-events-none -z-10 overflow-hidden"
+        >
+          {/* Subtle high-resolution wellness wave texture */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.06] mix-blend-multiply"
+            style={{ backgroundImage: "url('/images/health-bg.jpg')" }}
+          />
+          {/* Ambient soft glow orbs */}
+          <div className="absolute top-[-10%] left-[15%] w-[45vw] max-w-[650px] h-[45vw] max-h-[650px] rounded-full bg-emerald-400/10 blur-[130px]" />
+          <div className="absolute top-[40%] right-[5%] w-[40vw] max-w-[600px] h-[40vw] max-h-[600px] rounded-full bg-teal-300/15 blur-[140px]" />
+          <div className="absolute bottom-[5%] left-[25%] w-[35vw] max-w-[500px] h-[35vw] max-h-[500px] rounded-full bg-cyan-300/10 blur-[140px]" />
+        </div>
+
+        <div className="flex min-h-screen w-full relative z-0">
           {/* Desktop Navigation Sidebar */}
           <Sidebar />
 
