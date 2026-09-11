@@ -2,7 +2,9 @@
 
 @layer base {
   :root {
-    /* 1. Design System Typography Tokens */
+    /* =======================================================
+       1. CENTRALIZED DESIGN SYSTEM TYPOGRAPHY TOKENS
+       ======================================================= */
     --font-family-primary: var(--font-inter, "Inter"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     
     /* Font Weight Tokens */
@@ -11,35 +13,42 @@
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
 
-    /* Responsive Fluid Typography Scale via clamp() */
-    --font-size-display: clamp(2rem, 5vw, 3.75rem);   /* 32px -> 60px (Hero / Display) */
-    --font-size-h1: clamp(1.75rem, 4vw, 2.75rem);       /* 28px -> 44px (Page Titles) */
-    --font-size-h2: clamp(1.375rem, 3vw, 2rem);         /* 22px -> 32px (Section Titles) */
-    --font-size-h3: clamp(1.125rem, 2vw, 1.5rem);       /* 18px -> 24px (Card / Subsection) */
-    --font-size-h4: clamp(1rem, 1.5vw, 1.25rem);        /* 16px -> 20px (Minor Heading) */
-    --font-size-body-lg: 1.125rem;                      /* 18px (Lead paragraphs) */
-    --font-size-body: 1rem;                             /* 16px (Standard Body) */
-    --font-size-sm: 0.875rem;                           /* 14px (Secondary / Meta / Labels) */
-    --font-size-xs: 0.75rem;                            /* 12px (Badges / Tags / Indicators) */
+    /* Base Font Size Scale */
+    --font-size-xs: 0.75rem;       /* 12px - Badges, tiny labels, compact metadata */
+    --font-size-sm: 0.875rem;      /* 14px - Supporting info, metadata, timestamps, helper text */
+    --font-size-base: 1rem;        /* 16px - Standard body text, form inputs */
+    --font-size-lg: 1.125rem;      /* 18px - Lead paragraphs, card titles, H4 */
+    --font-size-xl: 1.25rem;       /* 20px - Subheadings, medium cards */
+    --font-size-2xl: 1.5rem;       /* 24px - H3, section headers */
+    --font-size-3xl: 1.875rem;     /* 30px - H2 section titles */
+    --font-size-4xl: 2.25rem;      /* 36px - H1 page titles */
 
+    /* Fluid Responsive Scale via clamp() */
+    --font-size-display: clamp(2rem, 5vw, 4rem);         /* 32px -> 64px (Display / Hero) */
+    --font-size-h1: clamp(1.75rem, 4vw, 3rem);            /* 28px -> 48px (Main H1 Page Headings) */
+    --font-size-h2: clamp(1.5rem, 3vw, 2.25rem);          /* 24px -> 36px (Section H2 Headings) */
+    --font-size-h3: clamp(1.25rem, 2vw, 1.75rem);         /* 20px -> 28px (H3 Headings) */
+    --font-size-h4: clamp(1.125rem, 1.5vw, 1.375rem);     /* 18px -> 22px (H4 Card / Sub-sections) */
+    
     /* Line Height Tokens */
-    --line-height-display: 1.1;
+    --line-height-tight: 1.15;
     --line-height-heading: 1.2;
-    --line-height-subheading: 1.3;
-    --line-height-body: 1.6;
-    --line-height-relaxed: 1.7;
-    --line-height-tight: 1.25;
+    --line-height-subheading: 1.25;
+    --line-height-ui: 1.3;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.6;
+    --line-height-loose: 1.7;
 
     /* Letter Spacing Tokens */
-    --letter-spacing-display: -0.025em;
     --letter-spacing-heading: -0.02em;
+    --letter-spacing-display: -0.025em;
     --letter-spacing-normal: 0em;
-    --letter-spacing-caps: 0.04em;
+    --letter-spacing-caps: 0.05em;
 
-    /* Text Measure / Line Length Limit */
+    /* Text Measure / Line Length Container Limit */
     --max-text-ch: 65ch;
 
-    /* Color Tokens */
+    /* Theme Color Tokens */
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
@@ -61,7 +70,7 @@
     --ring: 158 75% 40%;
     --radius: 0.75rem;
 
-    /* Safe Area Insets */
+    /* Safe Area Insets (for mobile notches & dynamic island) */
     --sat: env(safe-area-inset-top, 0px);
     --sab: env(safe-area-inset-bottom, 0px);
     --sal: env(safe-area-inset-left, 0px);
@@ -79,8 +88,8 @@
 
   body {
     font-family: var(--font-family-primary);
-    font-size: var(--font-size-body);
-    line-height: var(--line-height-body);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-relaxed);
     font-weight: var(--font-weight-regular);
     color: #0f172a;
     background-color: #f8fafc;
@@ -91,12 +100,15 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Standard Heading Scales with Fluid Responsive Behavior */
+  /* =======================================================
+     HTML5 HEADING SCALE & ELEMENTS WITH CONTROLLED HIERARCHY
+     ======================================================= */
   h1 {
     font-size: var(--font-size-h1);
     font-weight: var(--font-weight-bold);
-    line-height: var(--line-height-heading);
+    line-height: var(--line-height-tight);
     letter-spacing: var(--letter-spacing-heading);
+    overflow-wrap: break-word;
     color: #0f172a;
   }
 
@@ -105,6 +117,7 @@
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-heading);
     letter-spacing: var(--letter-spacing-heading);
+    overflow-wrap: break-word;
     color: #0f172a;
   }
 
@@ -113,33 +126,51 @@
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-subheading);
     letter-spacing: var(--letter-spacing-normal);
+    overflow-wrap: break-word;
     color: #1e293b;
   }
 
   h4 {
     font-size: var(--font-size-h4);
     font-weight: var(--font-weight-semibold);
-    line-height: var(--line-height-subheading);
+    line-height: var(--line-height-ui);
+    overflow-wrap: break-word;
     color: #1e293b;
   }
 
   p {
-    font-size: var(--font-size-body);
-    line-height: var(--line-height-body);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-relaxed);
+    font-weight: var(--font-weight-regular);
     color: #334155;
+    overflow-wrap: break-word;
   }
 
   small {
     font-size: var(--font-size-sm);
     line-height: 1.45;
+    font-weight: var(--font-weight-regular);
     color: #64748b;
   }
 
-  /* Form Elements: Default to 16px to prevent unwanted iOS Safari Auto-Zoom */
+  /* Form Elements: Default to 16px to prevent iOS Safari auto-zoom issues */
   input, textarea, select {
     font-family: inherit;
     font-size: 16px;
     line-height: 1.5;
+  }
+
+  input::placeholder, textarea::placeholder {
+    font-size: 14px;
+    font-weight: 400;
+    color: #94a3b8;
+  }
+
+  label {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #334155;
   }
 
   button {
@@ -162,14 +193,14 @@
 .text-display {
   font-size: var(--font-size-display);
   font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-display);
+  line-height: 1.08;
   letter-spacing: var(--letter-spacing-display);
 }
 
 .text-h1 {
   font-size: var(--font-size-h1);
   font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-heading);
+  line-height: var(--line-height-tight);
   letter-spacing: var(--letter-spacing-heading);
 }
 
@@ -189,18 +220,18 @@
 .text-h4 {
   font-size: var(--font-size-h4);
   font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-subheading);
+  line-height: var(--line-height-ui);
 }
 
 .text-body-lg {
-  font-size: var(--font-size-body-lg);
-  line-height: var(--line-height-relaxed);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-loose);
   font-weight: var(--font-weight-regular);
 }
 
 .text-body {
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
   font-weight: var(--font-weight-regular);
 }
 
@@ -225,7 +256,7 @@
 
 /* Metric / Stat Displays */
 .text-stat-lg {
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: clamp(2rem, 4vw, 3rem);
   font-weight: var(--font-weight-bold);
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
@@ -233,17 +264,23 @@
 }
 
 .text-stat-md {
-  font-size: clamp(1.375rem, 2.5vw, 1.875rem);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
   font-weight: var(--font-weight-bold);
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
+.text-stat-label {
+  font-size: clamp(0.8125rem, 1.2vw, 0.9375rem);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
 /* Maximum Line Length / Prose Container for Optimal Reading Comfort */
 .prose-readable {
   max-width: var(--max-text-ch);
-  line-height: var(--line-height-relaxed);
+  line-height: var(--line-height-loose);
 }
 
 /* Safe Area Inset Utility Classes for iPhone notch / Dynamic Island */
