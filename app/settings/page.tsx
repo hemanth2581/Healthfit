@@ -17,7 +17,9 @@ import {
   Clock,
   Droplets,
   Moon,
+  Image as ImageIcon,
 } from 'lucide-react';
+import { BACKGROUND_PRESETS } from '@/components/layout/SiteBackground';
 import {
   fetchUserProfile,
   updateUserProfile,
@@ -62,8 +64,30 @@ export default function SettingsPage() {
     dailySummary: true,
   });
 
+  // Background Theme State
+  const [currentBg, setCurrentBg] = useState<string>('/images/site-bg.jpg');
+
   const availableAllergies = ['Dairy', 'Eggs', 'Nuts', 'Gluten', 'Seafood', 'Soy'];
   const cuisines = ['South Indian', 'North Indian', 'Regional Indian', 'Continental', 'Mixed Indian'];
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedBg = localStorage.getItem('healthfit_background_image');
+      if (savedBg) setCurrentBg(savedBg);
+    }
+  }, []);
+
+  const handleSelectBackground = (url: string) => {
+    setCurrentBg(url);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('healthfit_background_image', url);
+      window.dispatchEvent(new CustomEvent('healthfit:change-bg', { detail: { url } }));
+    }
+    setStatusMessage({
+      type: 'success',
+      text: 'Website background wallpaper updated successfully!',
+    });
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -482,7 +506,61 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* 3. Notification Preferences */}
+      {/* 3. Website Background & Theme */}
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-700">
+            <ImageIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-slate-900">Website Background Wallpaper</h2>
+            <p className="text-xs text-slate-500 font-medium">Choose an ambient background image for the entire application</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          {BACKGROUND_PRESETS.map((preset) => {
+            const isSelected = currentBg === preset.url;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleSelectBackground(preset.url)}
+                className={`group text-left p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col gap-2.5 ${
+                  isSelected
+                    ? 'border-emerald-600 bg-emerald-50/70 shadow-sm ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 bg-slate-50/80 hover:bg-slate-100/90 hover:border-slate-300'
+                }`}
+              >
+                {/* Thumbnail Preview */}
+                <div
+                  className="w-full h-28 rounded-xl bg-cover bg-center border border-slate-200/80 shadow-2xs relative overflow-hidden group-hover:scale-[1.01] transition-transform duration-300"
+                  style={{ backgroundImage: `url('${preset.url}')` }}
+                >
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-black flex items-center gap-1 shadow-md">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Active
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="font-bold text-sm text-slate-900 flex items-center justify-between">
+                    <span>{preset.name}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5 line-clamp-2">
+                    {preset.description}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. Notification Preferences */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-4">
         <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
           <div className="p-2.5 rounded-2xl bg-purple-100 text-purple-700">
