@@ -281,23 +281,33 @@ export default function LandingPage() {
       {/* =======================================================
           4. FINAL CTA BANNER
           ======================================================= */}
-      <section className="relative overflow-hidden p-8 sm:p-12 rounded-3xl bg-gradient-to-tr from-slate-900 via-emerald-950 to-slate-900 text-white shadow-2xl text-center space-y-4">
-        <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-          Ready to Start?
-        </span>
-        <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
-          Transform your daily habits starting today.
-        </h2>
-        <p className="text-sm sm:text-base text-slate-300 max-w-lg mx-auto">
-          Get your customized 7-day meal plan and workout schedule in under 60 seconds.
-        </p>
-        <div className="pt-2">
-          <Link
-            href={ctaLink}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-emerald-600/30 transition-all active:scale-[0.98] touch-manipulation cursor-pointer"
-          >
-            <span>{hasProfile ? 'Go to Dashboard 🚀' : 'Start Your Free Onboarding 🚀'}</span>
-          </Link>
+      <section className="relative overflow-hidden p-8 sm:p-14 rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 text-white shadow-2xl shadow-emerald-900/20 text-center space-y-5 border border-emerald-400/30">
+        {/* Ambient Decorative Lighting Accents */}
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded-full bg-emerald-400/20 blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-emerald-100 text-xs font-bold uppercase tracking-wider shadow-xs">
+            <span>✨</span>
+            <span>Ready to Start?</span>
+          </div>
+
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight !text-white drop-shadow-xs max-w-2xl mx-auto leading-tight">
+            Transform your daily habits starting today.
+          </h2>
+
+          <p className="text-sm sm:text-base text-emerald-50/90 font-medium max-w-lg mx-auto">
+            Get your customized 7-day meal plan and workout schedule in under 60 seconds.
+          </p>
+
+          <div className="pt-3">
+            <Link
+              href={ctaLink}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-white text-emerald-900 hover:bg-emerald-50 font-black text-sm sm:text-base shadow-xl shadow-emerald-950/20 hover:scale-[1.03] active:scale-[0.98] transition-all touch-manipulation cursor-pointer"
+            >
+              <span>{hasProfile ? 'Go to Dashboard 🚀' : 'Start Your Free Onboarding 🚀'}</span>
+            </Link>
+          </div>
         </div>
       </section>
     </div>

@@ -455,15 +455,16 @@ export default function DashboardPage() {
         />
 
         {/* 6. Complete Day Banner */}
-        <div className="p-5 sm:p-7 rounded-3xl bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              End of Day Evaluation
+        <div className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-xl shadow-emerald-900/15 border border-emerald-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="relative z-10 space-y-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-emerald-100 text-xs font-bold uppercase tracking-wider">
+              <span>✨</span>
+              <span>End of Day Evaluation</span>
             </span>
-            <h3 className="text-lg sm:text-xl font-extrabold tracking-tight mt-0.5">
+            <h3 className="text-xl sm:text-2xl font-black tracking-tight mt-1 !text-white">
               Ready to wrap up today?
             </h3>
-            <p className="text-xs text-slate-300 mt-1 max-w-md">
+            <p className="text-xs sm:text-sm text-emerald-50/90 max-w-md font-medium">
               Calculate your overall health score, update your consistency streak, and bank Health Points.
             </p>
           </div>
@@ -471,7 +472,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={handleCompleteDay}
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-emerald-600/30 transition-all active:scale-[0.98] cursor-pointer shrink-0 touch-manipulation text-center"
+            className="relative z-10 w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-white text-emerald-900 hover:bg-emerald-50 font-black text-sm sm:text-base shadow-lg shadow-emerald-950/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0 touch-manipulation text-center"
           >
             {progressState?.day_completed ? 'View Today’s Summary' : 'Complete Day 🚀'}
           </button>
