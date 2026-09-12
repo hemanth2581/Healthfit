@@ -10,6 +10,7 @@ import {
   Flame,
   Activity,
   Salad,
+  X,
 } from 'lucide-react';
 import { OnboardingData, Gender, Goal, ActivityLevel, DietType } from '@/types/user';
 import {
@@ -24,17 +25,17 @@ export function OnboardingWizard() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form State
-  const [formData, setFormData] = useState<OnboardingData>({
-    age: 25,
-    gender: 'male',
-    height: 175,
+  // Form State - Starts empty with placeholders so user enters their own details
+  const [formData, setFormData] = useState<Partial<OnboardingData>>({
+    age: undefined,
+    gender: undefined,
+    height: undefined,
     height_unit: 'cm',
-    weight: 70,
+    weight: undefined,
     weight_unit: 'kg',
-    activity_level: 'moderately_active',
-    goal: 'lose_weight',
-    diet_type: 'vegetarian',
+    activity_level: undefined,
+    goal: undefined,
+    diet_type: undefined,
     allergies: [],
   });
 
@@ -53,18 +54,48 @@ export function OnboardingWizard() {
     });
   };
 
+  const handleClose = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/dashboard');
+    }
+  };
+
   const validateStep = (currentStep: number): boolean => {
     if (currentStep === 1) {
-      if (!formData.age || formData.age < 12 || formData.age > 100) {
+      if (!formData.gender) {
+        setError('Please select your biological sex.');
+        return false;
+      }
+      if (!formData.age || isNaN(Number(formData.age)) || Number(formData.age) < 12 || Number(formData.age) > 100) {
         setError('Please enter a valid age between 12 and 100 years.');
         return false;
       }
-      if (!formData.height || formData.height <= 0) {
+      if (!formData.height || isNaN(Number(formData.height)) || Number(formData.height) <= 0) {
         setError('Please enter a valid height.');
         return false;
       }
-      if (!formData.weight || formData.weight <= 0) {
+      if (!formData.weight || isNaN(Number(formData.weight)) || Number(formData.weight) <= 0) {
         setError('Please enter a valid weight.');
+        return false;
+      }
+    }
+    if (currentStep === 2) {
+      if (!formData.goal) {
+        setError('Please select your primary goal.');
+        return false;
+      }
+    }
+    if (currentStep === 3) {
+      if (!formData.activity_level) {
+        setError('Please select your daily activity level.');
+        return false;
+      }
+    }
+    if (currentStep === 4) {
+      if (!formData.diet_type) {
+        setError('Please select your diet preference.');
         return false;
       }
     }
@@ -85,6 +116,19 @@ export function OnboardingWizard() {
   const handleSubmit = async () => {
     if (!validateStep(step)) return;
 
+    if (
+      !formData.age ||
+      !formData.height ||
+      !formData.weight ||
+      !formData.gender ||
+      !formData.goal ||
+      !formData.activity_level ||
+      !formData.diet_type
+    ) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -92,15 +136,15 @@ export function OnboardingWizard() {
       const userId = getClientUserId();
       const heightInCm =
         formData.height_unit === 'ft'
-          ? Math.round(formData.height * 30.48)
-          : formData.height;
+          ? Math.round(Number(formData.height) * 30.48)
+          : Number(formData.height);
       const weightInKg =
         formData.weight_unit === 'lbs'
-          ? Math.round(formData.weight * 0.453592)
-          : formData.weight;
+          ? Math.round(Number(formData.weight) * 0.453592)
+          : Number(formData.weight);
 
       const profilePayload = {
-        age: formData.age,
+        age: Number(formData.age),
         gender: formData.gender,
         sex: formData.gender,
         height: heightInCm,
@@ -111,13 +155,13 @@ export function OnboardingWizard() {
         goal: formData.goal,
         diet_type: formData.diet_type,
         diet_preference: formData.diet_type,
-        allergies: formData.allergies,
-        dietary_restrictions: formData.allergies,
+        allergies: formData.allergies || [],
+        dietary_restrictions: formData.allergies || [],
         full_name: 'HealthFit Explorer',
       };
 
       // 1. Save Profile & Calculate all Health Targets
-      const { profile, targets } = await saveProfileAndTargets(userId, profilePayload);
+      const { profile, targets } = await saveProfileAndTargets(userId, profilePayload as any);
 
       // 2. Generate and Persist 7-Day Plan
       await createAndSave7DayPlan(userId, targets, profile);
@@ -141,18 +185,25 @@ export function OnboardingWizard() {
 
   return (
     <div className="mx-auto max-w-2xl px-2 sm:px-4">
-      {/* Step Indicators */}
+      {/* Step Indicators & Exit Button */}
       <div className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] sm:text-xs font-bold text-emerald-700 uppercase tracking-wider">
-            Step {step} of 4
-          </span>
-          <span className="text-xs sm:text-sm font-semibold text-slate-600">
+          <span className="text-[11px] sm:text-xs font-bold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60">
+            Step {step} of 4 &bull;{' '}
             {step === 1 && 'Basic Information'}
             {step === 2 && 'Primary Goal'}
             {step === 3 && 'Activity Level'}
             {step === 4 && 'Food Preferences'}
           </span>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-full transition-all cursor-pointer shadow-2xs"
+            aria-label="Close onboarding"
+          >
+            <X className="h-4 w-4" />
+            <span className="hidden sm:inline">Exit</span>
+          </button>
         </div>
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {[1, 2, 3, 4].map((i) => (
@@ -167,10 +218,21 @@ export function OnboardingWizard() {
       </div>
 
       {/* Card Container */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white/95 p-4 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
+      <div className="relative rounded-3xl border border-slate-200/90 bg-white/95 p-4 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
+        {/* Close Button top-right inside card */}
+        <button
+          type="button"
+          onClick={handleClose}
+          aria-label="Close"
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer touch-manipulation z-10"
+          title="Close details"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
         {/* STEP 1: Basic Information */}
         {step === 1 && (
-          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
+          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200 pr-6 sm:pr-8">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
                 <Scale className="h-6 w-6 text-emerald-600 shrink-0" />
@@ -192,7 +254,7 @@ export function OnboardingWizard() {
                     key={g}
                     type="button"
                     onClick={() => updateForm('gender', g)}
-                    className={`py-3 px-4 rounded-2xl border font-bold text-sm capitalize transition-all touch-manipulation min-h-[48px] flex items-center justify-center gap-1.5 ${
+                    className={`py-3 px-4 rounded-2xl border font-bold text-sm capitalize transition-all touch-manipulation min-h-[48px] flex items-center justify-center gap-1.5 cursor-pointer ${
                       formData.gender === g
                         ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-xs'
                         : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:border-slate-300'
@@ -215,10 +277,13 @@ export function OnboardingWizard() {
                   type="number"
                   min="12"
                   max="100"
-                  value={formData.age}
-                  onChange={(e) => updateForm('age', parseInt(e.target.value, 10) || 0)}
+                  value={formData.age !== undefined ? formData.age : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateForm('age', val === '' ? (undefined as any) : parseInt(val, 10));
+                  }}
                   className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 font-bold text-base focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 min-h-[48px]"
-                  placeholder="25"
+                  placeholder="e.g. 25"
                 />
               </div>
 
@@ -232,7 +297,7 @@ export function OnboardingWizard() {
                     <button
                       type="button"
                       onClick={() => updateForm('height_unit', 'cm')}
-                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                      className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
                         formData.height_unit === 'cm'
                           ? 'bg-emerald-600 text-white'
                           : 'text-slate-600 hover:text-slate-900'
@@ -243,7 +308,7 @@ export function OnboardingWizard() {
                     <button
                       type="button"
                       onClick={() => updateForm('height_unit', 'ft')}
-                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                      className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
                         formData.height_unit === 'ft'
                           ? 'bg-emerald-600 text-white'
                           : 'text-slate-600 hover:text-slate-900'
@@ -256,10 +321,13 @@ export function OnboardingWizard() {
                 <input
                   type="number"
                   step="any"
-                  value={formData.height}
-                  onChange={(e) => updateForm('height', parseFloat(e.target.value) || 0)}
+                  value={formData.height !== undefined ? formData.height : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateForm('height', val === '' ? (undefined as any) : parseFloat(val));
+                  }}
                   className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 font-bold text-base focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 min-h-[48px]"
-                  placeholder={formData.height_unit === 'cm' ? '175' : '5.9'}
+                  placeholder={formData.height_unit === 'cm' ? 'e.g. 175' : 'e.g. 5.9'}
                 />
               </div>
 
@@ -273,7 +341,7 @@ export function OnboardingWizard() {
                     <button
                       type="button"
                       onClick={() => updateForm('weight_unit', 'kg')}
-                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                      className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
                         formData.weight_unit === 'kg'
                           ? 'bg-emerald-600 text-white'
                           : 'text-slate-600 hover:text-slate-900'
@@ -284,7 +352,7 @@ export function OnboardingWizard() {
                     <button
                       type="button"
                       onClick={() => updateForm('weight_unit', 'lbs')}
-                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                      className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
                         formData.weight_unit === 'lbs'
                           ? 'bg-emerald-600 text-white'
                           : 'text-slate-600 hover:text-slate-900'
@@ -297,10 +365,13 @@ export function OnboardingWizard() {
                 <input
                   type="number"
                   step="any"
-                  value={formData.weight}
-                  onChange={(e) => updateForm('weight', parseFloat(e.target.value) || 0)}
+                  value={formData.weight !== undefined ? formData.weight : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateForm('weight', val === '' ? (undefined as any) : parseFloat(val));
+                  }}
                   className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 font-bold text-base focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 min-h-[48px]"
-                  placeholder={formData.weight_unit === 'kg' ? '70' : '154'}
+                  placeholder={formData.weight_unit === 'kg' ? 'e.g. 70' : 'e.g. 154'}
                 />
               </div>
             </div>
@@ -309,7 +380,7 @@ export function OnboardingWizard() {
 
         {/* STEP 2: Goal */}
         {step === 2 && (
-          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
+          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200 pr-6 sm:pr-8">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
                 <Flame className="h-6 w-6 text-emerald-600 shrink-0" />
@@ -345,7 +416,7 @@ export function OnboardingWizard() {
                   key={item.id}
                   type="button"
                   onClick={() => updateForm('goal', item.id)}
-                  className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-start gap-3.5 sm:gap-4 touch-manipulation min-h-[56px] active:scale-[0.99] ${
+                  className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-start gap-3.5 sm:gap-4 touch-manipulation min-h-[56px] active:scale-[0.99] cursor-pointer ${
                     formData.goal === item.id
                       ? 'border-emerald-500 bg-emerald-50/90 shadow-md shadow-emerald-500/10'
                       : 'border-slate-200 bg-slate-50/60 hover:border-slate-300'
@@ -364,7 +435,7 @@ export function OnboardingWizard() {
 
         {/* STEP 3: Activity Level */}
         {step === 3 && (
-          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
+          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200 pr-6 sm:pr-8">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
                 <Activity className="h-6 w-6 text-emerald-600 shrink-0" />
@@ -406,7 +477,7 @@ export function OnboardingWizard() {
                   key={item.id}
                   type="button"
                   onClick={() => updateForm('activity_level', item.id)}
-                  className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-start gap-3.5 sm:gap-4 touch-manipulation min-h-[56px] active:scale-[0.99] ${
+                  className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-start gap-3.5 sm:gap-4 touch-manipulation min-h-[56px] active:scale-[0.99] cursor-pointer ${
                     formData.activity_level === item.id
                       ? 'border-emerald-500 bg-emerald-50/90 shadow-md shadow-emerald-500/10'
                       : 'border-slate-200 bg-slate-50/60 hover:border-slate-300'
@@ -425,7 +496,7 @@ export function OnboardingWizard() {
 
         {/* STEP 4: Food Preference & Allergies */}
         {step === 4 && (
-          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
+          <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200 pr-6 sm:pr-8">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
                 <Salad className="h-6 w-6 text-emerald-600 shrink-0" />
@@ -452,7 +523,7 @@ export function OnboardingWizard() {
                     key={item.id}
                     type="button"
                     onClick={() => updateForm('diet_type', item.id)}
-                    className={`py-3 sm:py-3.5 px-3 sm:px-4 rounded-2xl border font-bold text-xs sm:text-sm transition-all touch-manipulation min-h-[48px] flex items-center justify-center ${
+                    className={`py-3 sm:py-3.5 px-3 sm:px-4 rounded-2xl border font-bold text-xs sm:text-sm transition-all touch-manipulation min-h-[48px] flex items-center justify-center cursor-pointer ${
                       formData.diet_type === item.id
                         ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-xs'
                         : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:border-slate-300'
@@ -477,7 +548,7 @@ export function OnboardingWizard() {
                       key={item.id}
                       type="button"
                       onClick={() => handleAllergyToggle(item.id)}
-                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all touch-manipulation min-h-[44px] flex items-center justify-center ${
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all touch-manipulation min-h-[44px] flex items-center justify-center cursor-pointer ${
                         isSelected
                           ? 'border-emerald-500 bg-emerald-100 text-emerald-800'
                           : 'border-slate-200 bg-slate-50/70 text-slate-600 hover:text-slate-900'
@@ -512,7 +583,14 @@ export function OnboardingWizard() {
               <span>Back</span>
             </button>
           ) : (
-            <div />
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex items-center gap-1.5 py-3 px-4 sm:px-5 rounded-2xl border border-slate-200 text-slate-500 hover:text-slate-800 font-bold text-xs sm:text-sm hover:bg-slate-100 transition-colors cursor-pointer touch-manipulation min-h-[48px]"
+            >
+              <X className="h-4 w-4" />
+              <span>Cancel</span>
+            </button>
           )}
 
           {step < 4 ? (
